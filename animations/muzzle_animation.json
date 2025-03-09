@@ -1,0 +1,20 @@
+{
+  "animation": {
+    "name": "muzzle_flash",
+    "frames": [
+      {
+        "image": "muzzle_flash_1.png",
+        "duration": 50
+      },
+      {
+        "image": "muzzle_flash_2.png",
+        "duration": 50
+      },
+      {
+        "image": "muzzle_flash_3.png",
+        "duration": 50
+      }
+    ],
+    "loop": false
+  }
+}
