@@ -1,4 +1,4 @@
-import * as THREE from '/node_modules/three/build/three.module.js';
+import * as THREE from '../node_modules/three/build/three.module.js';
 
 export default class Weapon {
     constructor(scene, camera, gameState) {
@@ -31,17 +31,15 @@ export default class Weapon {
     }
 
     createPaintSplatter(position, normal) {
-        // Random paint color
-        const colors = [0xff0000, 0x00ff00, 0x0000ff, 0xff00ff, 0xffff00, 0x00ffff];
-        const color = colors[Math.floor(Math.random() * colors.length)];
+        // Generate paint splatter texture
+        const texture = this.generateCanvasPaintSplatter();
 
         // Create paint splatter geometry
-        const splatterGeometry = new THREE.CircleGeometry(0.3, 8);
+        const splatterGeometry = new THREE.PlaneGeometry(0.6, 0.6);
         const splatterMaterial = new THREE.MeshBasicMaterial({
-            color: color,
+            map: texture,
             side: THREE.DoubleSide,
-            transparent: true,
-            opacity: 0.8
+            transparent: true
         });
 
         const splatter = new THREE.Mesh(splatterGeometry, splatterMaterial);
@@ -83,6 +81,36 @@ export default class Weapon {
             const oldestSplatter = this.paintSplatters.shift();
             this.scene.remove(oldestSplatter);
         }
+    }
+
+    generateCanvasPaintSplatter() {
+        const canvas = document.createElement('canvas');
+        canvas.width = 512;
+        canvas.height = 512;
+        const context = canvas.getContext('2d');
+
+        // Random paint color
+        const colors = ['#ff0000', '#00ff00', '#0000ff', '#ff00ff', '#ffff00', '#00ffff'];
+        const color = colors[Math.floor(Math.random() * colors.length)];
+
+        // Draw paint splatter
+        context.fillStyle = color;
+        context.beginPath();
+        const mainRadius = 100 + Math.random() * 100; // Vary the main circle radius
+        context.arc(256, 256, mainRadius, 0, Math.PI * 2);
+        context.fill();
+
+        // Add random splatter effect
+        for (let i = 0; i < 30; i++) {
+            const x = Math.random() * 512;
+            const y = Math.random() * 512;
+            const radius = Math.random() * 20;
+            context.beginPath();
+            context.arc(x, y, radius, 0, Math.PI * 2);
+            context.fill();
+        }
+
+        return new THREE.CanvasTexture(canvas);
     }
 
     shoot(event) {
