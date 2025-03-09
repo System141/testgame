@@ -97,4 +97,29 @@ export default class TextureGenerator {
         texture.repeat.set(10, 10);
         return texture;
     }
+
+    generateCanvasFloorTexture() {
+        const canvas = document.createElement('canvas');
+        canvas.width = 512;
+        canvas.height = 512;
+        const context = canvas.getContext('2d');
+
+        // Draw a realistic floor pattern
+        context.fillStyle = '#A9A9A9';
+        context.fillRect(0, 0, canvas.width, canvas.height);
+
+        context.strokeStyle = '#808080';
+        context.lineWidth = 2;
+        for (let y = 0; y < canvas.height; y += 64) {
+            for (let x = 0; x < canvas.width; x += 64) {
+                context.strokeRect(x, y, 64, 64);
+            }
+        }
+
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.wrapS = THREE.RepeatWrapping;
+        texture.wrapT = THREE.RepeatWrapping;
+        texture.repeat.set(10, 10);
+        return texture;
+    }
 }
