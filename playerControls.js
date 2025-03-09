@@ -43,7 +43,12 @@ export default class PlayerControls {
 
     createPlayerModel() {
         const geometry = new THREE.BoxGeometry(0.5, 1.8, 0.5);
-        const material = new THREE.MeshStandardMaterial({ color: 0x00ff00 });
+        const material = new THREE.MeshStandardMaterial({ 
+            color: 0x00ff00,
+            visible: false,  // Make the model invisible
+            transparent: true,
+            opacity: 0
+        });
         this.playerModel = new THREE.Mesh(geometry, material);
         this.playerModel.position.set(this.player.position.x, this.player.position.y - 0.9, this.player.position.z);
         this.playerModel.scale.set(1, 1, 1);

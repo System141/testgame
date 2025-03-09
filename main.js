@@ -2,19 +2,19 @@ import * as THREE from '../node_modules/three/build/three.module.js';
 import { World, Body, Box, Vec3 } from '../node_modules/cannon-es/dist/cannon-es.js';
 import PlayerControls from './playerControls.js';
 import GameMap from './map.js';
-import SkySphere from './skybox.js';
+import Skybox from './skybox.js';
 import GameState from './gameState.js';
 import Weapon from './weapon.js';
 import Enemy from './enemy.js';
 import TextureGenerator from './textureGenerator.js';
 
-let camera, scene, renderer, controls, gameMap, skySphere, gameState, weapon, physicsWorld;
+let camera, scene, renderer, controls, gameMap, skybox, gameState, weapon, physicsWorld;
 let enemies = [];
 
 init();
 animate();
 
-async function init() {
+function init() {
     // Create scene
     scene = new THREE.Scene();
 
@@ -51,12 +51,12 @@ async function init() {
     // Create game map
     gameMap = new GameMap(scene, physicsWorld);
 
-    // Create sky sphere
-    skySphere = new SkySphere(scene);
+    // Create skybox
+    skybox = new Skybox(scene);
 
     // Add floor with new texture
     const textureGenerator = new TextureGenerator();
-    const floorTexture = textureGenerator.generateCanvasFloorTexture();
+    const floorTexture = textureGenerator.generateFloorTexture();
     const floorGeometry = new THREE.BoxGeometry(100, 0.1, 100);
     const floorMaterial = new THREE.MeshStandardMaterial({ map: floorTexture });
     const floor = new THREE.Mesh(floorGeometry, floorMaterial);
@@ -95,6 +95,9 @@ function animate() {
 
     // Update controls
     controls.update();
+
+    // Update weapon
+    weapon.update();
 
     // Update enemies
     enemies = enemies.filter(enemy => enemy.isAlive);

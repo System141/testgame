@@ -12,9 +12,9 @@ export default class GameMap {
     this.createMap();
   }
 
-  async createMap() {
+  createMap() {
     // Generate textures
-    const wallTexture = this.textureGenerator.generateCanvasWallTexture();
+    const wallTexture = this.textureGenerator.generateWallTexture();
 
     console.log('Textures generated');
 
