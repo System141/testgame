@@ -14,7 +14,7 @@ let enemies = [];
 init();
 animate();
 
-function init() {
+async function init() {
     // Create scene
     scene = new THREE.Scene();
 
@@ -56,7 +56,7 @@ function init() {
 
     // Add floor with new texture
     const textureGenerator = new TextureGenerator();
-    const floorTexture = textureGenerator.generateFloorTexture();
+    const floorTexture = await textureGenerator.generateFloorTexture();
     const floorGeometry = new THREE.BoxGeometry(100, 0.1, 100);
     const floorMaterial = new THREE.MeshStandardMaterial({ map: floorTexture });
     const floor = new THREE.Mesh(floorGeometry, floorMaterial);
