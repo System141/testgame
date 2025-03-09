@@ -92,9 +92,13 @@ export default class Weapon {
         if (now - this.lastShot < this.shootingDelay) return;
         this.lastShot = now;
 
+        // Random bullet color
+        const colors = [0xff0000, 0x00ff00, 0x0000ff, 0xff00ff, 0xffff00, 0x00ffff];
+        const color = colors[Math.floor(Math.random() * colors.length)];
+
         // Create bullet
-        const bulletGeometry = new THREE.SphereGeometry(0.05);
-        const bulletMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+        const bulletGeometry = new THREE.SphereGeometry(0.05, 16, 16);
+        const bulletMaterial = new THREE.MeshBasicMaterial({ color: color });
         const bullet = new THREE.Mesh(bulletGeometry, bulletMaterial);
 
         // Set bullet position to camera position
