@@ -1117,6 +1117,527 @@ export default class Weapon {
     }
     
     /**
+     * Creates a bullet impact effect on surfaces
+     * @param {THREE.Vector3} position - Impact position vector
+     * @param {THREE.Vector3} normal - Surface normal vector
+     * @param {string} weaponType - Type of weapon that fired the bullet
+     */
+    createBulletImpact(position, normal, weaponType = 'rifle') {
+        try {
+            // Initialize impact effects cache if not already done
+            if (!this.bulletImpacts) {
+                this.bulletImpacts = [];
+                this.bulletImpactGeometries = {};
+                this.bulletImpactMaterials = {};
+            }
+            
+            // Determine surface type based on normal (rough approximation)
+            const surfaceType = Math.abs(normal.y) > 0.7 ? 'floor' : 'wall';
+            
+            // Define paintball colors array if not already created
+            if (!this.paintballColors) {
+                this.paintballColors = [
+                    0xFF3355, // Red
+                    0x33FF55, // Green
+                    0x5533FF, // Blue
+                    0xFF33FF, // Pink
+                    0xFFFF33, // Yellow
+                    0x33FFFF, // Cyan
+                    0xFF9933, // Orange
+                    0x99FF33, // Lime
+                    0x9933FF, // Purple
+                    0x33FFCC  // Turquoise
+                ];
+            }
+            
+            // Use random bright color for impact
+            const colorIndex = Math.floor(Math.random() * this.paintballColors.length);
+            const impactColor = this.paintballColors[colorIndex];
+            
+            // Different parameters based on weapon type (but all are colorful)
+            let particleCount, particleSize, particleVelocity, impactRadius;
+            
+            switch (weaponType) {
+                case 'sniper':
+                    particleCount = 20;  // More particles for bigger splatter
+                    particleSize = 0.025;
+                    particleVelocity = 0.18;
+                    impactRadius = 0.15; // Larger impact
+                    break;
+                    
+                case 'rifle':
+                    particleCount = 15;
+                    particleSize = 0.02;
+                    particleVelocity = 0.14;
+                    impactRadius = 0.12;
+                    break;
+                    
+                default: // paintball and other weapons
+                    particleCount = 12;
+                    particleSize = 0.018;
+                    particleVelocity = 0.12;
+                    impactRadius = 0.1;
+            }
+            
+            // Add surface-specific adjustments
+            if (surfaceType === 'floor') {
+                particleVelocity *= 0.8; // Reduce velocity for floor impacts
+                particleCount += 3;      // Add more particles for floor impacts
+            }
+            
+            // Create bullet hole decal (different for each surface)
+            this.createBulletDecal(position, normal, impactRadius, weaponType, surfaceType);
+            
+            // Create particle burst effect
+            this.createImpactParticles(
+                position, 
+                normal, 
+                particleCount, 
+                particleSize, 
+                particleVelocity, 
+                impactColor, 
+                surfaceType
+            );
+            
+        } catch (error) {
+            console.error('Error creating bullet impact:', error);
+        }
+    }
+    
+    /**
+     * Creates a bullet hole decal on the impact surface
+     * @param {THREE.Vector3} position - Impact position
+     * @param {THREE.Vector3} normal - Surface normal
+     * @param {number} radius - Impact radius
+     * @param {string} weaponType - Type of weapon
+     * @param {string} surfaceType - Type of surface (floor or wall)
+     * @private
+     */
+    createBulletDecal(position, normal, radius, weaponType, surfaceType) {
+        // Get or select a random color for this splatter
+        const colorIndex = Math.floor(Math.random() * this.paintballColors.length);
+        const paintColor = this.paintballColors[colorIndex];
+        const colorKey = paintColor.toString(16);
+        
+        // Create key for geometry cache
+        const geometryKey = `${weaponType}_${surfaceType}`;
+        
+        // Create and cache geometries for performance
+        if (!this.bulletImpactGeometries[geometryKey]) {
+            // For paintball impacts, use slightly irregular circle with more segments
+            this.bulletImpactGeometries[geometryKey] = new THREE.CircleGeometry(radius, 12);
+        }
+        
+        // Generate/get material for this color
+        const materialKey = `${surfaceType}_${colorKey}`;
+        if (!this.bulletImpactMaterials[materialKey]) {
+            // Generate texture for paintball splatter with the specific color
+            const texture = this.generatePaintSplashTexture(paintColor, surfaceType);
+            
+            this.bulletImpactMaterials[materialKey] = new THREE.MeshBasicMaterial({
+                map: texture,
+                color: paintColor,  // Tint the material with the paintball color
+                transparent: true,
+                opacity: 0.9,
+                depthWrite: false,
+                side: THREE.DoubleSide,
+                blending: THREE.NormalBlending
+            });
+        }
+        
+        // Create the decal mesh
+        const decal = new THREE.Mesh(
+            this.bulletImpactGeometries[geometryKey],
+            this.bulletImpactMaterials[materialKey]
+        );
+        decal.name = 'paintSplatter';
+        
+        // Position slightly offset from the surface to prevent z-fighting
+        decal.position.copy(position);
+        decal.position.addScaledVector(normal, 0.01);
+        
+        // Orient the decal to match the surface normal
+        if (Math.abs(normal.y) > 0.9) {
+            // For floor/ceiling
+            decal.rotation.x = normal.y > 0 ? -Math.PI / 2 : Math.PI / 2;
+            decal.rotation.z = Math.random() * Math.PI * 2; // Random rotation
+        } else {
+            // For walls
+            decal.lookAt(position.clone().add(normal));
+        }
+        
+        // Add to scene
+        this.scene.add(decal);
+        
+        // Add to impact list for management
+        this.bulletImpacts.push({
+            mesh: decal,
+            createdAt: Date.now()
+        });
+        
+        // Manage impact count to maintain performance
+        this.manageBulletImpacts();
+    }
+    
+    /**
+     * Creates particle burst effect for bullet impact
+     * @param {THREE.Vector3} position - Impact position
+     * @param {THREE.Vector3} normal - Surface normal
+     * @param {number} count - Number of particles
+     * @param {number} size - Size of particles
+     * @param {number} velocity - Velocity of particles
+     * @param {number} color - Color of particles
+     * @param {string} surfaceType - Type of surface
+     * @private
+     */
+    createImpactParticles(position, normal, count, size, velocity, baseColor, surfaceType) {
+        const particles = [];
+        
+        // Get random color if none provided (for color consistency)
+        if (!baseColor) {
+            const colorIndex = Math.floor(Math.random() * this.paintballColors.length);
+            baseColor = this.paintballColors[colorIndex];
+        }
+        
+        // Create particle material if not already cached
+        if (!this.particleMaterial) {
+            this.particleMaterial = new THREE.MeshBasicMaterial({
+                color: 0xffffff,  // Will be modified per particle
+                transparent: true,
+                opacity: 0.9,
+                blending: THREE.NormalBlending
+            });
+        }
+        
+        // Create particle geometry if not already cached
+        if (!this.particleGeometry) {
+            // Use sphere for paint droplets
+            this.particleGeometry = new THREE.SphereGeometry(1, 6, 6);
+        }
+        
+        // Create the impact particles
+        for (let i = 0; i < count; i++) {
+            // Clone the material to set unique color and opacity
+            const particleMaterial = this.particleMaterial.clone();
+            
+            // Slight color variation for each particle
+            const colorVariation = 0.1;
+            const hsl = new THREE.Color(baseColor).getHSL({});
+            const newColor = new THREE.Color().setHSL(
+                hsl.h + (Math.random() * 2 - 1) * 0.05,  // slight hue variation
+                Math.min(1, Math.max(0, hsl.s + (Math.random() * 2 - 1) * colorVariation)),
+                Math.min(1, Math.max(0, hsl.l + (Math.random() * 2 - 1) * colorVariation))
+            );
+            
+            particleMaterial.color = newColor;
+            
+            const particle = new THREE.Mesh(this.particleGeometry, particleMaterial);
+            particle.name = 'paintSplatterParticle';
+            
+            // Random scale for each particle
+            const particleScale = size * (0.5 + Math.random() * 0.5);
+            particle.scale.set(particleScale, particleScale, particleScale);
+            
+            // Position at impact point
+            particle.position.copy(position);
+            
+            // Create velocity vector
+            // Main direction is along the normal, with some random spread
+            const particleVelocity = new THREE.Vector3();
+            
+            // Add normal component (bouncing off surface)
+            particleVelocity.copy(normal).multiplyScalar(velocity * (0.5 + Math.random() * 0.8));
+            
+            // Add random spread component
+            const randomSpread = new THREE.Vector3(
+                (Math.random() - 0.5) * velocity,
+                (Math.random() - 0.5) * velocity,
+                (Math.random() - 0.5) * velocity
+            );
+            
+            // Adjust for floor or wall surfaces
+            if (surfaceType === 'floor') {
+                // For floor impacts, particles should mostly go upward
+                randomSpread.y = Math.abs(randomSpread.y);
+            }
+            
+            particleVelocity.add(randomSpread);
+            
+            // Store velocity and lifetime with the particle
+            particle.userData = {
+                velocity: particleVelocity,
+                lifetime: 0.5 + Math.random() * 0.5, // 0.5 to 1 second lifetime
+                startTime: Date.now(),
+                gravity: surfaceType === 'floor' ? 0.001 : 0.003 // Less gravity for floor impacts
+            };
+            
+            // Add to scene and tracker array
+            this.scene.add(particle);
+            particles.push(particle);
+        }
+        
+        // Set up animation for particles
+        const animateParticles = () => {
+            let allDone = true;
+            const now = Date.now();
+            
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const particle = particles[i];
+                const data = particle.userData;
+                const elapsed = (now - data.startTime) / 1000; // seconds
+                
+                if (elapsed < data.lifetime) {
+                    allDone = false;
+                    
+                    // Update position based on velocity
+                    particle.position.add(data.velocity);
+                    
+                    // Apply gravity to velocity
+                    data.velocity.y -= data.gravity;
+                    
+                    // Slow down velocity due to air resistance
+                    data.velocity.multiplyScalar(0.95);
+                    
+                    // Fade out based on lifetime
+                    particle.material.opacity = 0.8 * (1 - elapsed / data.lifetime);
+                } else {
+                    // Remove expired particles
+                    this.scene.remove(particle);
+                    particle.material.dispose();
+                    particles.splice(i, 1);
+                }
+            }
+            
+            // Continue animation if any particles remain
+            if (!allDone) {
+                requestAnimationFrame(animateParticles);
+            }
+        };
+        
+        // Start animation
+        requestAnimationFrame(animateParticles);
+    }
+    
+    /**
+     * Generates a texture for colorful paint splash effects
+     * @param {number} paintColor - Color of the paint (hex value)
+     * @param {string} surfaceType - Type of surface (floor or wall)
+     * @returns {THREE.CanvasTexture} - Generated texture
+     * @private
+     */
+    generatePaintSplashTexture(paintColor, surfaceType) {
+        const canvas = document.createElement('canvas');
+        canvas.width = 256; // Higher resolution for more detail
+        canvas.height = 256;
+        const context = canvas.getContext('2d');
+        
+        // Clear canvas
+        context.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // Extract RGB components from hex color for variations
+        const r = (paintColor >> 16) & 255;
+        const g = (paintColor >> 8) & 255;
+        const b = paintColor & 255;
+        
+        // Common properties
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+        
+        // Define splash radius based on surface type
+        const splashRadius = surfaceType === 'wall' ? canvas.width / 2.5 : canvas.width / 3;
+        
+        // Create main paint blob with translucent center
+        const mainGradient = context.createRadialGradient(
+            centerX, centerY, 0,
+            centerX, centerY, splashRadius
+        );
+        
+        // More opaque in center, transparent at edges
+        mainGradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, 0.95)`);
+        mainGradient.addColorStop(0.4, `rgba(${r}, ${g}, ${b}, 0.8)`);
+        mainGradient.addColorStop(0.7, `rgba(${r}, ${g}, ${b}, 0.6)`);
+        mainGradient.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`);
+        
+        // Draw irregular blob shape instead of perfect circle
+        context.save();
+        context.beginPath();
+        
+        // Generate irregular blob with 8-12 points
+        const points = 8 + Math.floor(Math.random() * 5);
+        const angleStep = (Math.PI * 2) / points;
+        const irregularity = 0.3; // How irregular the shape can be
+        
+        // Start at first point
+        const firstRadius = splashRadius * (1 - irregularity/2 + Math.random() * irregularity);
+        const firstX = centerX + Math.cos(0) * firstRadius;
+        const firstY = centerY + Math.sin(0) * firstRadius;
+        context.moveTo(firstX, firstY);
+        
+        // Draw the rest using bezier curves for smoother, organic shape
+        for (let i = 1; i <= points; i++) {
+            const angle = i * angleStep;
+            const prevAngle = (i - 1) * angleStep;
+            
+            // Random radius for this point
+            const radius = splashRadius * (1 - irregularity/2 + Math.random() * irregularity);
+            const x = centerX + Math.cos(angle) * radius;
+            const y = centerY + Math.sin(angle) * radius;
+            
+            // Control points for bezier curve
+            const cp1x = centerX + Math.cos(prevAngle + angleStep/3) * radius * 1.1;
+            const cp1y = centerY + Math.sin(prevAngle + angleStep/3) * radius * 1.1;
+            const cp2x = centerX + Math.cos(angle - angleStep/3) * radius * 1.1;
+            const cp2y = centerY + Math.sin(angle - angleStep/3) * radius * 1.1;
+            
+            context.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, x, y);
+        }
+        
+        // Close the path and fill with gradient
+        context.closePath();
+        context.fillStyle = mainGradient;
+        context.fill();
+        context.restore();
+        
+        // Surface-specific effects
+        if (surfaceType === 'wall') {
+            // Add drips for wall impacts
+            const dripCount = 3 + Math.floor(Math.random() * 4); // 3-6 drips
+            
+            for (let i = 0; i < dripCount; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                // More drips at the bottom half for walls
+                const adjustedAngle = (angle + Math.PI) / 2;
+                
+                const dripStart = splashRadius * 0.7;
+                const dripLength = 15 + Math.random() * 35; // 15-50px drips
+                const dripWidth = 3 + Math.random() * 7; // 3-10px width
+                
+                const startX = centerX + Math.cos(adjustedAngle) * dripStart;
+                const startY = centerY + Math.sin(adjustedAngle) * dripStart;
+                const endX = centerX + Math.cos(adjustedAngle) * (dripStart + dripLength);
+                const endY = centerY + Math.sin(adjustedAngle) * (dripStart + dripLength);
+                
+                // Create drip gradient
+                const dripGradient = context.createLinearGradient(startX, startY, endX, endY);
+                dripGradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, 0.9)`);
+                dripGradient.addColorStop(0.7, `rgba(${r}, ${g}, ${b}, 0.7)`);
+                dripGradient.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`);
+                
+                // Draw drip
+                context.beginPath();
+                context.moveTo(startX, startY);
+                
+                // Slightly curved drip path
+                const ctrlX = startX + (Math.random() - 0.5) * 10;
+                const ctrlY = startY + (endY - startY) * 0.6;
+                context.quadraticCurveTo(ctrlX, ctrlY, endX, endY);
+                
+                context.lineWidth = dripWidth;
+                context.lineCap = 'round';
+                context.strokeStyle = dripGradient;
+                context.stroke();
+                
+                // Add a droplet at the end of some drips
+                if (Math.random() > 0.3) { // 70% chance
+                    const dropSize = dripWidth * 1.5;
+                    context.beginPath();
+                    context.arc(endX, endY, dropSize, 0, Math.PI * 2);
+                    context.fillStyle = `rgba(${r}, ${g}, ${b}, 0.8)`;
+                    context.fill();
+                }
+            }
+        } else {
+            // Add small paint splatters around for floor impacts
+            const splatterCount = 8 + Math.floor(Math.random() * 7); // 8-14 splatters
+            
+            for (let i = 0; i < splatterCount; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const distance = splashRadius * 0.5 + Math.random() * splashRadius * 0.7;
+                const x = centerX + Math.cos(angle) * distance;
+                const y = centerY + Math.sin(angle) * distance;
+                const size = 2 + Math.random() * 8; // 2-10px splatters
+                
+                // Slight color variation for visual interest
+                const colorVariation = 20 * (Math.random() - 0.5);
+                const rVar = Math.max(0, Math.min(255, r + colorVariation));
+                const gVar = Math.max(0, Math.min(255, g + colorVariation));
+                const bVar = Math.max(0, Math.min(255, b + colorVariation));
+                
+                context.fillStyle = `rgba(${rVar}, ${gVar}, ${bVar}, ${0.6 + Math.random() * 0.3})`;
+                
+                // Randomly choose between circular and irregular splatters
+                if (Math.random() > 0.5) {
+                    // Circular splatter
+                    context.beginPath();
+                    context.arc(x, y, size, 0, Math.PI * 2);
+                    context.fill();
+                } else {
+                    // Irregular splatter
+                    context.beginPath();
+                    const splatterPoints = 5 + Math.floor(Math.random() * 3);
+                    const splatterAngleStep = (Math.PI * 2) / splatterPoints;
+                    
+                    // First point
+                    const firstSplatterRadius = size * (0.8 + Math.random() * 0.4);
+                    context.moveTo(
+                        x + Math.cos(0) * firstSplatterRadius,
+                        y + Math.sin(0) * firstSplatterRadius
+                    );
+                    
+                    // Remaining points
+                    for (let j = 1; j <= splatterPoints; j++) {
+                        const splatterAngle = j * splatterAngleStep;
+                        const splatterRadius = size * (0.8 + Math.random() * 0.4);
+                        
+                        context.lineTo(
+                            x + Math.cos(splatterAngle) * splatterRadius,
+                            y + Math.sin(splatterAngle) * splatterRadius
+                        );
+                    }
+                    
+                    context.closePath();
+                    context.fill();
+                }
+            }
+        }
+        
+        return new THREE.CanvasTexture(canvas);
+    }
+    
+    /**
+     * Manages bullet impact objects to maintain performance
+     * @private
+     */
+    manageBulletImpacts() {
+        if (!this.bulletImpacts) return;
+        
+        const MAX_IMPACTS = 50;    // Maximum number of impacts to keep
+        const MAX_AGE_MS = 20000;  // Maximum age in milliseconds (20 seconds)
+        const now = Date.now();
+        
+        // First remove any impacts that are too old
+        for (let i = this.bulletImpacts.length - 1; i >= 0; i--) {
+            const impact = this.bulletImpacts[i];
+            if (now - impact.createdAt > MAX_AGE_MS) {
+                this.scene.remove(impact.mesh);
+                this.bulletImpacts.splice(i, 1);
+            }
+        }
+        
+        // If still too many, remove oldest ones
+        if (this.bulletImpacts.length > MAX_IMPACTS) {
+            // Sort by age (oldest first) for more efficient removal
+            this.bulletImpacts.sort((a, b) => a.createdAt - b.createdAt);
+            
+            // Remove oldest impacts until we're under the limit
+            while (this.bulletImpacts.length > MAX_IMPACTS) {
+                const oldestImpact = this.bulletImpacts.shift();
+                this.scene.remove(oldestImpact.mesh);
+            }
+        }
+    }
+    
+    /**
      * Generates a paint splatter texture using canvas
      * @param {number} color - Color for the splatter (hex value)
      * @returns {THREE.CanvasTexture} Generated texture
@@ -1304,12 +1825,18 @@ export default class Weapon {
             
             // Process collision if it happened within this frame's movement
             if (intersects.length > 0 && intersects[0].distance < moveDistance) {
-                // Get hit object
+                // Get hit object and surface info
                 const hitObject = intersects[0].object;
+                const hitPoint = intersects[0].point;
+                const hitNormal = intersects[0].face.normal;
                 
-                // Create appropriate effect based on weapon type
-                if (bullet.weaponType === 'paintball' || bullet.weaponType === 'splatter') {
-                    this.createPaintSplatter(intersects[0].point, intersects[0].face.normal);
+                // Create appropriate effect based on weapon type and surface
+                if (bullet.weaponType === 'paintball') {
+                    // Paint splatter for paintball gun
+                    this.createPaintSplatter(hitPoint, hitNormal);
+                } else {
+                    // Bullet impact effect for other weapons
+                    this.createBulletImpact(hitPoint, hitNormal, bullet.weaponType);
                 }
                 
                 // Check if we hit an enemy and apply damage

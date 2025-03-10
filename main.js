@@ -203,8 +203,20 @@ function handleEnemySpawning() {
 
 /**
  * Spawn a new enemy at a random position
+ * Maximum of 10 enemies at a time
  */
 function spawnEnemy() {
+    // Check if we've already reached the maximum number of enemies
+    const MAX_ENEMIES = 10;
+    
+    // Filter out dead enemies first to get accurate count of active enemies
+    enemies = enemies.filter(enemy => enemy.isAlive);
+    
+    // Don't spawn if already at max enemies
+    if (enemies.length >= MAX_ENEMIES) {
+        return;
+    }
+    
     // Generate random position away from player
     const angle = Math.random() * Math.PI * 2;
     const distance = 15 + Math.random() * 10; // Between 15-25 units away
@@ -214,6 +226,9 @@ function spawnEnemy() {
     const position = new THREE.Vector3(x, 1, z);
     const enemy = new Enemy(scene, physicsWorld, position, gameState);
     enemies.push(enemy);
+    
+    // Debugging info
+    console.log(`Spawned enemy. Current count: ${enemies.length}/${MAX_ENEMIES}`);
 }
 
 /**
