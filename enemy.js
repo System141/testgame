@@ -28,6 +28,11 @@ export default class Enemy {
         this.mesh.position.copy(this.position);
         this.mesh.castShadow = true;
         this.mesh.receiveShadow = true;
+        
+        // Set enemy userData for collision detection
+        this.mesh.userData.isEnemy = true;
+        this.mesh.userData.enemyRef = this; // Reference to this enemy instance for damage handling
+        
         this.scene.add(this.mesh);
         
         // Add health bar
@@ -58,11 +63,16 @@ export default class Enemy {
     }
     
     createPhysicsBody() {
+        // Create physics body that matches the visual model size
         this.body = new Body({
             mass: 5,
             position: new Vec3(this.position.x, this.position.y, this.position.z),
-            shape: new Box(new Vec3(0.5, 1, 0.5))
+            shape: new Box(new Vec3(0.5, 1, 0.5)) // Match the visual model dimensions
         });
+        
+        // Store a reference to the mesh for synchronization
+        this.body.userData = { mesh: this.mesh };
+        
         this.physicsWorld.addBody(this.body);
     }
     
@@ -125,6 +135,9 @@ export default class Enemy {
         this.healthFill.scale.x = healthPercent;
         this.healthFill.position.x = (healthPercent - 1) / 2;
         
+        // Visual feedback for damage - flash red
+        this.flashDamage();
+        
         if (this.health <= 0 && this.isAlive) {
             this.die();
         }
@@ -135,5 +148,24 @@ export default class Enemy {
         this.scene.remove(this.mesh);
         this.physicsWorld.removeBody(this.body);
         this.gameState.addScore(100);
+    }
+    
+    /**
+     * Visual feedback when enemy takes damage
+     * @private
+     */
+    flashDamage() {
+        // Original color
+        const originalColor = this.mesh.material.color.clone();
+        
+        // Flash bright red
+        this.mesh.material.color.set(0xff3333);
+        this.mesh.material.emissive = new THREE.Color(0x330000);
+        
+        // Reset back to original color after 100ms
+        setTimeout(() => {
+            this.mesh.material.color.copy(originalColor);
+            this.mesh.material.emissive = new THREE.Color(0x000000);
+        }, 100);
     }
 }

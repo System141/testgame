@@ -200,27 +200,82 @@ export default class Weapon {
      * @private
      */
     createRifleModel(sharedGeometry) {
-        // Rifle material with better properties
-        const rifleMaterial = new THREE.MeshStandardMaterial({ 
-            color: 0x333333,
-            roughness: 0.7,
-            metalness: 0.3
+        // Create procedural texture for rifle
+        const rifleTexture = this.generateWeaponTexture('rifle', {
+            baseColor: 0x444444,
+            patternColor: 0x222222,
+            highlightColor: 0x888888,
+            wearLevel: 0.3
         });
         
-        // Create basic rifle model
+        // Advanced rifle materials with texture
+        const rifleMaterial = new THREE.MeshStandardMaterial({ 
+            map: rifleTexture,
+            roughness: 0.7,
+            metalness: 0.4,
+            bumpMap: rifleTexture,
+            bumpScale: 0.02
+        });
+        
+        // Materials for different parts
+        const metalMaterial = new THREE.MeshStandardMaterial({
+            color: 0x888888,
+            roughness: 0.3,
+            metalness: 0.8
+        });
+        
+        const gripMaterial = new THREE.MeshStandardMaterial({
+            color: 0x222222,
+            roughness: 0.9,
+            metalness: 0.1
+        });
+        
+        // Create detailed rifle model
         this.weapons.rifle.model = new THREE.Group();
         
-        // Main body
-        const rifleBody = new THREE.Mesh(sharedGeometry, rifleMaterial);
-        rifleBody.scale.set(0.1, 0.1, 0.5);
-        this.weapons.rifle.model.add(rifleBody);
+        // Main body (more complex geometry)
+        const mainBodyGeometry = new THREE.BoxGeometry(0.1, 0.08, 0.5);
+        const mainBody = new THREE.Mesh(mainBodyGeometry, rifleMaterial);
+        this.weapons.rifle.model.add(mainBody);
         
-        // Add barrel
-        const barrelGeometry = new THREE.CylinderGeometry(0.02, 0.02, 0.3, 8);
-        const barrel = new THREE.Mesh(barrelGeometry, rifleMaterial);
+        // Upper receiver
+        const upperGeometry = new THREE.BoxGeometry(0.1, 0.04, 0.3);
+        const upperReceiver = new THREE.Mesh(upperGeometry, metalMaterial);
+        upperReceiver.position.set(0, 0.06, -0.05);
+        this.weapons.rifle.model.add(upperReceiver);
+        
+        // Grip
+        const gripGeometry = new THREE.BoxGeometry(0.08, 0.12, 0.05);
+        const grip = new THREE.Mesh(gripGeometry, gripMaterial);
+        grip.position.set(0, -0.1, 0.1);
+        grip.rotation.set(-0.3, 0, 0);
+        this.weapons.rifle.model.add(grip);
+        
+        // Magazine
+        const magGeometry = new THREE.BoxGeometry(0.06, 0.15, 0.04);
+        const magazine = new THREE.Mesh(magGeometry, rifleMaterial);
+        magazine.position.set(0, -0.11, 0.05);
+        this.weapons.rifle.model.add(magazine);
+        
+        // Barrel (more detailed)
+        const barrelGeometry = new THREE.CylinderGeometry(0.02, 0.02, 0.4, 8);
+        const barrel = new THREE.Mesh(barrelGeometry, metalMaterial);
         barrel.rotation.set(Math.PI/2, 0, 0);
-        barrel.position.set(0, 0, -0.3);
+        barrel.position.set(0, 0.02, -0.35);
         this.weapons.rifle.model.add(barrel);
+        
+        // Muzzle brake
+        const muzzleGeometry = new THREE.CylinderGeometry(0.03, 0.03, 0.05, 8);
+        const muzzle = new THREE.Mesh(muzzleGeometry, metalMaterial);
+        muzzle.rotation.set(Math.PI/2, 0, 0);
+        muzzle.position.set(0, 0.02, -0.55);
+        this.weapons.rifle.model.add(muzzle);
+        
+        // Front sight
+        const sightGeometry = new THREE.BoxGeometry(0.02, 0.04, 0.02);
+        const frontSight = new THREE.Mesh(sightGeometry, metalMaterial);
+        frontSight.position.set(0, 0.06, -0.45);
+        this.weapons.rifle.model.add(frontSight);
         
         // Set model position and scale
         this.weapons.rifle.model.scale.set(
@@ -244,32 +299,132 @@ export default class Weapon {
      * @private
      */
     createSniperModel(sharedGeometry) {
-        // Sniper material with better properties
-        const sniperMaterial = new THREE.MeshStandardMaterial({ 
-            color: 0x666666,
-            roughness: 0.5,
-            metalness: 0.5
+        // Create procedural texture for sniper rifle
+        const sniperTexture = this.generateWeaponTexture('sniper', {
+            baseColor: 0x555555,
+            patternColor: 0x333333,
+            highlightColor: 0x999999,
+            wearLevel: 0.2
         });
         
-        // Create sniper model group
+        // Advanced sniper materials with texture
+        const sniperMaterial = new THREE.MeshStandardMaterial({ 
+            map: sniperTexture,
+            roughness: 0.5,
+            metalness: 0.6,
+            bumpMap: sniperTexture,
+            bumpScale: 0.02
+        });
+        
+        // Materials for different parts
+        const metalMaterial = new THREE.MeshStandardMaterial({
+            color: 0x777777,
+            roughness: 0.2,
+            metalness: 0.9
+        });
+        
+        const scopeMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0x111111, 
+            roughness: 0.1, 
+            metalness: 0.9,
+            envMapIntensity: 1.0
+        });
+        
+        const stockMaterial = new THREE.MeshStandardMaterial({
+            color: 0x222222,
+            roughness: 0.8,
+            metalness: 0.1
+        });
+        
+        // Create detailed sniper model group
         this.weapons.sniper.model = new THREE.Group();
         
-        // Main body
-        const sniperBody = new THREE.Mesh(sharedGeometry, sniperMaterial);
-        sniperBody.scale.set(0.1, 0.1, 0.8);
-        this.weapons.sniper.model.add(sniperBody);
+        // Main body (longer and more slender)
+        const mainBodyGeometry = new THREE.BoxGeometry(0.08, 0.06, 1.0);
+        const mainBody = new THREE.Mesh(mainBodyGeometry, sniperMaterial);
+        this.weapons.sniper.model.add(mainBody);
         
-        // Scope
-        const scopeGeometry = new THREE.CylinderGeometry(0.03, 0.03, 0.15, 8);
-        const scopeMaterial = new THREE.MeshStandardMaterial({ 
-            color: 0x000000, 
-            roughness: 0.2, 
-            metalness: 0.8 
-        });
+        // Barrel (longer, higher precision look)
+        const barrelGeometry = new THREE.CylinderGeometry(0.015, 0.015, 0.8, 8);
+        const barrel = new THREE.Mesh(barrelGeometry, metalMaterial);
+        barrel.rotation.set(Math.PI/2, 0, 0);
+        barrel.position.set(0, 0.01, -0.55);
+        this.weapons.sniper.model.add(barrel);
+        
+        // Muzzle brake
+        const muzzleGeometry = new THREE.CylinderGeometry(0.025, 0.02, 0.1, 8);
+        const muzzle = new THREE.Mesh(muzzleGeometry, metalMaterial);
+        muzzle.rotation.set(Math.PI/2, 0, 0);
+        muzzle.position.set(0, 0.01, -0.9);
+        this.weapons.sniper.model.add(muzzle);
+        
+        // Stock (buttstock for sniper rifle)
+        const stockGeometry = new THREE.BoxGeometry(0.07, 0.1, 0.25);
+        const stock = new THREE.Mesh(stockGeometry, stockMaterial);
+        stock.position.set(0, -0.03, 0.4);
+        this.weapons.sniper.model.add(stock);
+        
+        // Grip
+        const gripGeometry = new THREE.BoxGeometry(0.06, 0.12, 0.04);
+        const grip = new THREE.Mesh(gripGeometry, stockMaterial);
+        grip.position.set(0, -0.09, 0.2);
+        grip.rotation.set(-0.2, 0, 0);
+        this.weapons.sniper.model.add(grip);
+        
+        // Magazine
+        const magGeometry = new THREE.BoxGeometry(0.05, 0.12, 0.03);
+        const magazine = new THREE.Mesh(magGeometry, sniperMaterial);
+        magazine.position.set(0, -0.09, 0.15);
+        this.weapons.sniper.model.add(magazine);
+        
+        // Enhanced scope (more detailed)
+        const scopeBaseGeometry = new THREE.BoxGeometry(0.04, 0.02, 0.15);
+        const scopeBase = new THREE.Mesh(scopeBaseGeometry, metalMaterial);
+        scopeBase.position.set(0, 0.04, -0.1);
+        this.weapons.sniper.model.add(scopeBase);
+        
+        // Scope tube
+        const scopeGeometry = new THREE.CylinderGeometry(0.025, 0.025, 0.25, 8);
         const scope = new THREE.Mesh(scopeGeometry, scopeMaterial);
         scope.rotation.set(Math.PI/2, 0, 0);
-        scope.position.set(0, 0.05, -0.1);
+        scope.position.set(0, 0.06, -0.1);
         this.weapons.sniper.model.add(scope);
+        
+        // Scope lens (front)
+        const lensGeometry = new THREE.CylinderGeometry(0.025, 0.025, 0.01, 16);
+        const lensMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0x3399ff, 
+            roughness: 0, 
+            metalness: 0.5,
+            transparent: true,
+            opacity: 0.7
+        });
+        const frontLens = new THREE.Mesh(lensGeometry, lensMaterial);
+        frontLens.rotation.set(Math.PI/2, 0, 0);
+        frontLens.position.set(0, 0.06, -0.22);
+        this.weapons.sniper.model.add(frontLens);
+        
+        // Scope lens (back)
+        const backLens = new THREE.Mesh(lensGeometry, lensMaterial);
+        backLens.rotation.set(Math.PI/2, 0, 0);
+        backLens.position.set(0, 0.06, 0.02);
+        this.weapons.sniper.model.add(backLens);
+        
+        // Bipod
+        const bipodLegGeometry = new THREE.BoxGeometry(0.01, 0.15, 0.01);
+        const bipodMaterial = new THREE.MeshStandardMaterial({ color: 0x444444 });
+        
+        // Left leg
+        const leftLeg = new THREE.Mesh(bipodLegGeometry, bipodMaterial);
+        leftLeg.position.set(-0.04, -0.08, -0.7);
+        leftLeg.rotation.set(0, 0, Math.PI/6);
+        this.weapons.sniper.model.add(leftLeg);
+        
+        // Right leg
+        const rightLeg = new THREE.Mesh(bipodLegGeometry, bipodMaterial);
+        rightLeg.position.set(0.04, -0.08, -0.7);
+        rightLeg.rotation.set(0, 0, -Math.PI/6);
+        this.weapons.sniper.model.add(rightLeg);
         
         // Set model position and scale
         this.weapons.sniper.model.scale.set(
@@ -293,63 +448,150 @@ export default class Weapon {
      * @private
      */
     createPaintballModel(sharedGeometry) {
-        // Paintball gun material with better properties
-        const paintballMaterial = new THREE.MeshStandardMaterial({ 
-            color: 0x00bb00,
-            roughness: 0.6,
-            metalness: 0.2
+        // Create procedural texture for paintball gun
+        const paintballTexture = this.generateWeaponTexture('paintball', {
+            baseColor: 0x00aa00,
+            patternColor: 0x008800,
+            highlightColor: 0x99ff99,
+            wearLevel: 0.15
         });
         
-        // Create paintball gun group
-        this.weapons.paintball.model = new THREE.Group();
+        // Advanced paintball gun materials with texture
+        const paintballMaterial = new THREE.MeshStandardMaterial({ 
+            map: paintballTexture,
+            color: 0x00cc00, // Keep a green tint
+            roughness: 0.6,
+            metalness: 0.2,
+            bumpMap: paintballTexture,
+            bumpScale: 0.01
+        });
         
-        // Main body
-        const mainBody = new THREE.Mesh(sharedGeometry, paintballMaterial);
-        mainBody.scale.set(0.1, 0.1, 0.4);
-        this.weapons.paintball.model.add(mainBody);
+        // Materials for different parts
+        const metalMaterial = new THREE.MeshStandardMaterial({
+            color: 0x888888,
+            roughness: 0.3,
+            metalness: 0.8
+        });
         
-        // Handle - use shared geometry for optimization
-        const handleMaterial = new THREE.MeshStandardMaterial({ 
-            color: 0x222222,
+        const gripMaterial = new THREE.MeshStandardMaterial({
+            color: 0x111111,
             roughness: 0.9,
             metalness: 0.1
         });
-        const handle = new THREE.Mesh(sharedGeometry, handleMaterial);
-        handle.scale.set(0.08, 0.18, 0.08);
-        handle.position.set(0, -0.14, 0.12);
-        this.weapons.paintball.model.add(handle);
         
-        // Tank - limit segments for performance
-        const tankGeometry = new THREE.CylinderGeometry(0.05, 0.05, 0.2, 8);
         const tankMaterial = new THREE.MeshStandardMaterial({ 
             color: 0x444444,
-            roughness: 0.4,
-            metalness: 0.6
+            roughness: 0.2,
+            metalness: 0.8
         });
+        
+        const hopperMaterial = new THREE.MeshStandardMaterial({ 
+            color: 0x333333, 
+            transparent: true, 
+            opacity: 0.7,
+            roughness: 0.1
+        });
+        
+        // Create more detailed paintball gun model
+        this.weapons.paintball.model = new THREE.Group();
+        
+        // Main body (body of the marker)
+        const mainBodyGeometry = new THREE.BoxGeometry(0.09, 0.08, 0.35);
+        const mainBody = new THREE.Mesh(mainBodyGeometry, paintballMaterial);
+        this.weapons.paintball.model.add(mainBody);
+        
+        // Add texture details to the body
+        const detailsGeometry = new THREE.BoxGeometry(0.095, 0.01, 0.1);
+        const details = new THREE.Mesh(detailsGeometry, metalMaterial);
+        details.position.set(0, 0.045, 0.05);
+        this.weapons.paintball.model.add(details);
+        
+        // Handle - ergonomic grip
+        const handleGeometry = new THREE.BoxGeometry(0.06, 0.15, 0.08);
+        const handle = new THREE.Mesh(handleGeometry, gripMaterial);
+        handle.position.set(0, -0.11, 0.1);
+        handle.rotation.set(-0.2, 0, 0);
+        this.weapons.paintball.model.add(handle);
+        
+        // Trigger guard
+        const guardGeometry = new THREE.BoxGeometry(0.06, 0.02, 0.05);
+        const guard = new THREE.Mesh(guardGeometry, metalMaterial);
+        guard.position.set(0, -0.04, 0.1);
+        this.weapons.paintball.model.add(guard);
+        
+        // Trigger
+        const triggerGeometry = new THREE.BoxGeometry(0.01, 0.04, 0.01);
+        const trigger = new THREE.Mesh(triggerGeometry, metalMaterial);
+        trigger.position.set(0, -0.06, 0.1);
+        this.weapons.paintball.model.add(trigger);
+        
+        // CO2/HPA Tank with more detail
+        const tankGeometry = new THREE.CylinderGeometry(0.04, 0.04, 0.25, 12);
         const tank = new THREE.Mesh(tankGeometry, tankMaterial);
         tank.rotation.set(0, 0, Math.PI/2);
-        tank.position.set(0, 0, 0.15);
+        tank.position.set(0, -0.02, 0.2);
         this.weapons.paintball.model.add(tank);
         
-        // Barrel - limit segments for performance
-        const barrelGeometry = new THREE.CylinderGeometry(0.02, 0.02, 0.25, 8);
-        const barrelMaterial = new THREE.MeshStandardMaterial({ 
-            color: 0x333333,
-            roughness: 0.3,
-            metalness: 0.7
-        });
-        const barrel = new THREE.Mesh(barrelGeometry, barrelMaterial);
+        // Tank valve
+        const valveGeometry = new THREE.CylinderGeometry(0.02, 0.02, 0.04, 8);
+        const valve = new THREE.Mesh(valveGeometry, metalMaterial);
+        valve.position.set(0, -0.02, 0.33);
+        this.weapons.paintball.model.add(valve);
+        
+        // Barrel with more detail
+        const barrelGeometry = new THREE.CylinderGeometry(0.015, 0.018, 0.35, 12);
+        const barrel = new THREE.Mesh(barrelGeometry, metalMaterial);
         barrel.rotation.set(Math.PI/2, 0, 0);
-        barrel.position.set(0, 0, -0.2);
+        barrel.position.set(0, 0, -0.3);
         this.weapons.paintball.model.add(barrel);
         
-        // Add paintball hopper on top
-        const hopperGeometry = new THREE.SphereGeometry(0.07, 8, 8, 0, Math.PI*2, 0, Math.PI/2);
-        const hopperMaterial = new THREE.MeshStandardMaterial({ color: 0x333333, transparent: true, opacity: 0.7 });
-        const hopper = new THREE.Mesh(hopperGeometry, hopperMaterial);
-        hopper.rotation.set(Math.PI, 0, 0);
-        hopper.position.set(0, 0.07, 0);
-        this.weapons.paintball.model.add(hopper);
+        // Barrel tip (porting)
+        const tipGeometry = new THREE.CylinderGeometry(0.022, 0.022, 0.05, 12);
+        const tip = new THREE.Mesh(tipGeometry, paintballMaterial);
+        tip.rotation.set(Math.PI/2, 0, 0);
+        tip.position.set(0, 0, -0.45);
+        this.weapons.paintball.model.add(tip);
+        
+        // Feed neck (connects hopper to body)
+        const neckGeometry = new THREE.CylinderGeometry(0.02, 0.02, 0.05, 8);
+        const neck = new THREE.Mesh(neckGeometry, metalMaterial);
+        neck.position.set(0, 0.06, 0);
+        this.weapons.paintball.model.add(neck);
+        
+        // Enhanced hopper with more realistic shape
+        const hopperTopGeometry = new THREE.SphereGeometry(0.08, 12, 12, 0, Math.PI*2, 0, Math.PI/2);
+        const hopperTop = new THREE.Mesh(hopperTopGeometry, hopperMaterial);
+        hopperTop.rotation.set(Math.PI, 0, 0);
+        hopperTop.position.set(0, 0.11, 0);
+        this.weapons.paintball.model.add(hopperTop);
+        
+        // Hopper body
+        const hopperBodyGeometry = new THREE.BoxGeometry(0.15, 0.08, 0.15);
+        const hopperBody = new THREE.Mesh(hopperBodyGeometry, hopperMaterial);
+        hopperBody.position.set(0, 0.15, 0);
+        this.weapons.paintball.model.add(hopperBody);
+        
+        // Create paintballs inside hopper (visible through transparent hopper)
+        for (let i = 0; i < 8; i++) {
+            const ballGeometry = new THREE.SphereGeometry(0.015, 8, 8);
+            const ballMaterial = new THREE.MeshStandardMaterial({ 
+                color: Math.random() > 0.5 ? 0xff0000 : 0x0000ff,
+                roughness: 0.2
+            });
+            const paintball = new THREE.Mesh(ballGeometry, ballMaterial);
+            paintball.position.set(
+                (Math.random() - 0.5) * 0.1, 
+                0.14 + Math.random() * 0.05, 
+                (Math.random() - 0.5) * 0.1
+            );
+            this.weapons.paintball.model.add(paintball);
+        }
+        
+        // Accessories: sight/rail
+        const railGeometry = new THREE.BoxGeometry(0.04, 0.01, 0.15);
+        const rail = new THREE.Mesh(railGeometry, metalMaterial);
+        rail.position.set(0, 0.045, -0.05);
+        this.weapons.paintball.model.add(rail);
         
         // Set model position and scale
         this.weapons.paintball.model.scale.set(
@@ -727,17 +969,19 @@ export default class Weapon {
 
     handleWeaponSwitch(event) {
         if (event.key === '1') {
-            this.switchWeapon('rifle');
-        } else if (event.key === '2') {
-            this.switchWeapon('sniper');
-        } else if (event.key === '3') {
-            this.switchWeapon('paintball');
+            this.switchWeaponMode();
         }
     }
 
-    switchWeapon(weaponType) {
-        if (this.currentWeapon === weaponType) return;
-
+    switchWeaponMode() {
+        // Define the weapon modes in sequence: rifle → sniper → paintball
+        const modes = ['rifle', 'sniper', 'paintball'];
+        
+        // Get current index and calculate next mode
+        const currentIndex = modes.indexOf(this.currentWeapon);
+        const nextIndex = (currentIndex + 1) % modes.length;
+        const nextWeapon = modes[nextIndex];
+        
         // If player is reloading or in weapon switch animation, cancel it
         this.reloadState.active = false;
         this.switchState.active = false;
@@ -748,11 +992,14 @@ export default class Weapon {
         });
 
         // Show selected weapon
-        this.weapons[weaponType].model.visible = true;
-        this.currentWeapon = weaponType;
+        this.weapons[nextWeapon].model.visible = true;
+        this.currentWeapon = nextWeapon;
+        
+        // Display the current mode to the player
+        this.showWeaponModeMessage(nextWeapon);
         
         // Add a small weapon switch animation
-        const weaponModel = this.weapons[weaponType].model;
+        const weaponModel = this.weapons[nextWeapon].model;
         this.switchState.active = true;
         this.switchState.startTime = Date.now();
         this.switchState.originalPosition = weaponModel.position.clone();
@@ -815,13 +1062,23 @@ export default class Weapon {
                 return;
             }
             
-            // Update last shot time and reduce ammo
+            // Update last shot time and reduce ammo (skip ammo reduction for paintball for testing)
             this.lastShot = now;
-            currentWeaponProps.currentAmmo--;
+            if (this.currentWeapon !== 'paintball') {
+                currentWeaponProps.currentAmmo--;
+            } else {
+                // Ensure paintball gun always has ammo for testing
+                currentWeaponProps.currentAmmo = Math.max(currentWeaponProps.currentAmmo, 1);
+            }
             
             // Update UI ammo count if available
             if (this.gameState.updateAmmoUI) {
-                this.gameState.updateAmmoUI(currentWeaponProps.currentAmmo, currentWeaponProps.maxAmmo);
+                if (this.currentWeapon === 'paintball') {
+                    // Display infinity symbol for paintball ammo
+                    this.gameState.updateAmmoUI('∞', currentWeaponProps.maxAmmo, true);
+                } else {
+                    this.gameState.updateAmmoUI(currentWeaponProps.currentAmmo, currentWeaponProps.maxAmmo);
+                }
             }
             
             // Start recoil animation
@@ -967,6 +1224,278 @@ export default class Weapon {
         }
     }
 
+    /**
+     * Displays a message showing the current weapon mode
+     * @param {string} mode - The current weapon mode
+     * @private
+     */
+    showWeaponModeMessage(mode) {
+        // Get mode name in a user-friendly format
+        let modeName, modeColor;
+        
+        switch(mode) {
+            case 'rifle':
+                modeName = "ASSAULT RIFLE";
+                modeColor = "#ff7700";
+                break;
+            case 'sniper':
+                modeName = "SNIPER RIFLE";
+                modeColor = "#00aaff";
+                break;
+            case 'paintball':
+                modeName = "PAINTBALL GUN";
+                modeColor = "#00ff00";
+                break;
+            default:
+                modeName = mode.toUpperCase();
+                modeColor = "#ffffff";
+        }
+        
+        // Create or update message element
+        let msgElement = document.getElementById('weapon-mode-message');
+        
+        if (!msgElement) {
+            msgElement = document.createElement('div');
+            msgElement.id = 'weapon-mode-message';
+            msgElement.style.position = 'fixed';
+            msgElement.style.bottom = '20px';
+            msgElement.style.right = '20px';
+            msgElement.style.padding = '10px 15px';
+            msgElement.style.background = 'rgba(0, 0, 0, 0.7)';
+            msgElement.style.color = '#ffffff';
+            msgElement.style.fontFamily = 'Arial, sans-serif';
+            msgElement.style.fontSize = '18px';
+            msgElement.style.fontWeight = 'bold';
+            msgElement.style.borderRadius = '5px';
+            msgElement.style.transition = 'opacity 0.5s';
+            msgElement.style.zIndex = '9999';
+            document.body.appendChild(msgElement);
+        }
+        
+        // Set message content
+        msgElement.innerHTML = `WEAPON MODE: <span style="color:${modeColor}">${modeName}</span>`;
+        msgElement.style.opacity = '1';
+        
+        // Fade out after 2 seconds
+        setTimeout(() => {
+            msgElement.style.opacity = '0';
+        }, 2000);
+    }
+    
+    /**
+     * Generates procedural textures for weapon models
+     * @param {string} weaponType - The type of weapon ('rifle', 'sniper', 'paintball')
+     * @param {Object} options - Configuration options for the texture
+     * @returns {THREE.CanvasTexture} - The generated texture
+     */
+    generateWeaponTexture(weaponType, options = {}) {
+        // Set default options
+        const defaults = {
+            baseColor: 0x444444,     // Base weapon color
+            patternColor: 0x222222,  // Pattern/detail color
+            highlightColor: 0x888888, // Highlight color for wear edges
+            wearLevel: 0.3,          // 0.0 to 1.0 level of wear (scratches/damage)
+            resolution: 512          // Texture resolution
+        };
+        
+        // Merge defaults with provided options
+        const config = {...defaults, ...options};
+        
+        // Create canvas and get context
+        const canvas = document.createElement('canvas');
+        canvas.width = config.resolution;
+        canvas.height = config.resolution;
+        const ctx = canvas.getContext('2d');
+        
+        // Clear canvas
+        ctx.fillStyle = '#' + config.baseColor.toString(16).padStart(6, '0');
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Apply different patterns based on weapon type
+        switch(weaponType) {
+            case 'rifle':
+                this.generateRiflePattern(ctx, canvas.width, canvas.height, config);
+                break;
+            case 'sniper':
+                this.generateSniperPattern(ctx, canvas.width, canvas.height, config);
+                break;
+            case 'paintball':
+                this.generatePaintballPattern(ctx, canvas.width, canvas.height, config);
+                break;
+            default:
+                this.generateDefaultPattern(ctx, canvas.width, canvas.height, config);
+        }
+        
+        // Apply wear/scratches over the base texture
+        this.applyWearEffect(ctx, canvas.width, canvas.height, config);
+        
+        // Create and return canvas texture
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.needsUpdate = true;
+        return texture;
+    }
+    
+    /**
+     * Generates pattern specific to the rifle weapon
+     * @private
+     */
+    generateRiflePattern(ctx, width, height, config) {
+        // Convert colors to strings
+        const patternColor = '#' + config.patternColor.toString(16).padStart(6, '0');
+        
+        // Add grip texture (diagonal lines)
+        ctx.strokeStyle = patternColor;
+        ctx.lineWidth = 1;
+        
+        // Draw grip pattern
+        for (let i = 0; i < width; i += 6) {
+            ctx.beginPath();
+            ctx.moveTo(i, 0);
+            ctx.lineTo(i - height, height);
+            ctx.stroke();
+        }
+        
+        // Add small details
+        ctx.fillStyle = patternColor;
+        
+        // Add small rectangles for details
+        for (let i = 0; i < 20; i++) {
+            const x = Math.random() * width;
+            const y = Math.random() * height;
+            const w = 2 + Math.random() * 10;
+            const h = 2 + Math.random() * 10;
+            ctx.fillRect(x, y, w, h);
+        }
+    }
+    
+    /**
+     * Generates pattern specific to the sniper weapon
+     * @private
+     */
+    generateSniperPattern(ctx, width, height, config) {
+        // Convert colors to strings
+        const patternColor = '#' + config.patternColor.toString(16).padStart(6, '0');
+        const highlightColor = '#' + config.highlightColor.toString(16).padStart(6, '0');
+        
+        // Create digital camo pattern
+        ctx.fillStyle = patternColor;
+        
+        const blockSize = 20;
+        for (let x = 0; x < width; x += blockSize) {
+            for (let y = 0; y < height; y += blockSize) {
+                if (Math.random() > 0.6) {
+                    ctx.fillRect(x, y, blockSize, blockSize);
+                }
+            }
+        }
+        
+        // Add precision stripes
+        ctx.fillStyle = highlightColor;
+        ctx.fillRect(0, height * 0.3, width, 2);
+        ctx.fillRect(0, height * 0.7, width, 2);
+    }
+    
+    /**
+     * Generates pattern specific to the paintball weapon
+     * @private
+     */
+    generatePaintballPattern(ctx, width, height, config) {
+        // Create bright, colorful paintball gun texture
+        const patternColor = '#' + config.patternColor.toString(16).padStart(6, '0');
+        
+        // Add bright paint splatter effects
+        for (let i = 0; i < 40; i++) {
+            const x = Math.random() * width;
+            const y = Math.random() * height;
+            const radius = 3 + Math.random() * 15;
+            
+            // Random vibrant colors for splatter
+            const r = Math.floor(Math.random() * 255);
+            const g = Math.floor(Math.random() * 255);
+            const b = Math.floor(Math.random() * 255);
+            ctx.fillStyle = `rgba(${r}, ${g}, ${b}, 0.5)`;
+            
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        
+        // Add design stripes
+        ctx.strokeStyle = patternColor;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(0, height * 0.2);
+        ctx.lineTo(width, height * 0.2);
+        ctx.moveTo(0, height * 0.8);
+        ctx.lineTo(width, height * 0.8);
+        ctx.stroke();
+    }
+    
+    /**
+     * Generates a default pattern for any weapon type
+     * @private
+     */
+    generateDefaultPattern(ctx, width, height, config) {
+        // Simple pattern for fallback
+        const patternColor = '#' + config.patternColor.toString(16).padStart(6, '0');
+        
+        // Add grid pattern
+        ctx.strokeStyle = patternColor;
+        ctx.lineWidth = 1;
+        
+        for (let i = 0; i < width; i += width / 10) {
+            ctx.beginPath();
+            ctx.moveTo(i, 0);
+            ctx.lineTo(i, height);
+            ctx.stroke();
+        }
+        
+        for (let i = 0; i < height; i += height / 10) {
+            ctx.beginPath();
+            ctx.moveTo(0, i);
+            ctx.lineTo(width, i);
+            ctx.stroke();
+        }
+    }
+    
+    /**
+     * Applies wear and scratches to the weapon texture
+     * @private
+     */
+    applyWearEffect(ctx, width, height, config) {
+        // Convert colors to strings
+        const highlightColor = '#' + config.highlightColor.toString(16).padStart(6, '0');
+        
+        // Skip if wear level is zero
+        if (config.wearLevel <= 0) return;
+        
+        // Calculate number of scratches based on wear level
+        const scratchCount = Math.floor(config.wearLevel * 100);
+        
+        // Add scratches/wear marks
+        ctx.strokeStyle = highlightColor;
+        ctx.lineWidth = 1;
+        
+        for (let i = 0; i < scratchCount; i++) {
+            const x1 = Math.random() * width;
+            const y1 = Math.random() * height;
+            const length = 5 + Math.random() * 30;
+            const angle = Math.random() * Math.PI * 2;
+            
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x1 + Math.cos(angle) * length, y1 + Math.sin(angle) * length);
+            ctx.stroke();
+        }
+        
+        // Add edge wear
+        ctx.strokeStyle = highlightColor;
+        ctx.lineWidth = 3;
+        if (Math.random() > 0.5) {
+            ctx.strokeRect(0, 0, width, height);
+        }
+    }
+    
     /**
      * Creates a paint splatter effect on impact surfaces
      * @param {THREE.Vector3} position - Impact position vector
@@ -1293,26 +1822,25 @@ export default class Weapon {
     createImpactParticles(position, normal, count, size, velocity, baseColor, surfaceType) {
         const particles = [];
         
-        // Get random color if none provided (for color consistency)
-        if (!baseColor) {
-            const colorIndex = Math.floor(Math.random() * this.paintballColors.length);
-            baseColor = this.paintballColors[colorIndex];
-        }
-        
         // Create particle material if not already cached
         if (!this.particleMaterial) {
             this.particleMaterial = new THREE.MeshBasicMaterial({
                 color: 0xffffff,  // Will be modified per particle
                 transparent: true,
                 opacity: 0.9,
-                blending: THREE.NormalBlending
+                blending: THREE.AdditiveBlending // Changed to additive for more vibrant paint look
             });
         }
         
-        // Create particle geometry if not already cached
-        if (!this.particleGeometry) {
-            // Use sphere for paint droplets
-            this.particleGeometry = new THREE.SphereGeometry(1, 6, 6);
+        // Create variety of geometries for different paint particle shapes
+        if (!this.particleGeometries) {
+            this.particleGeometries = [
+                new THREE.SphereGeometry(1, 6, 6),               // Classic droplet
+                new THREE.BoxGeometry(1, 0.3, 1),                // Flat splat
+                new THREE.TetrahedronGeometry(1),                // Angular paint chip
+                new THREE.PlaneGeometry(1, 1),                   // Flat spray
+                new THREE.CircleGeometry(1, 8)                   // 2D splatter for wall impacts
+            ];
         }
         
         // Create the impact particles
@@ -1320,8 +1848,8 @@ export default class Weapon {
             // Clone the material to set unique color and opacity
             const particleMaterial = this.particleMaterial.clone();
             
-            // Slight color variation for each particle
-            const colorVariation = 0.1;
+            // Enhanced color variation for paint-like effect
+            const colorVariation = 0.15;
             const hsl = new THREE.Color(baseColor).getHSL({});
             const newColor = new THREE.Color().setHSL(
                 hsl.h + (Math.random() * 2 - 1) * 0.05,  // slight hue variation
@@ -1331,44 +1859,81 @@ export default class Weapon {
             
             particleMaterial.color = newColor;
             
-            const particle = new THREE.Mesh(this.particleGeometry, particleMaterial);
+            // Select random geometry for varied particles
+            const geometryIndex = Math.floor(Math.random() * this.particleGeometries.length);
+            const particle = new THREE.Mesh(this.particleGeometries[geometryIndex], particleMaterial);
             particle.name = 'paintSplatterParticle';
             
-            // Random scale for each particle
-            const particleScale = size * (0.5 + Math.random() * 0.5);
-            particle.scale.set(particleScale, particleScale, particleScale);
+            // More varied and paint-like scaling
+            const particleScale = size * (0.3 + Math.random() * 0.8);
             
-            // Position at impact point
-            particle.position.copy(position);
+            // For some particles, create non-uniform scaling for more paint-like appearance
+            if (Math.random() > 0.5) {
+                particle.scale.set(
+                    particleScale * (0.8 + Math.random() * 0.6), 
+                    particleScale * (0.2 + Math.random() * 0.3), 
+                    particleScale * (0.8 + Math.random() * 0.6)
+                );
+            } else {
+                particle.scale.set(particleScale, particleScale, particleScale);
+            }
             
-            // Create velocity vector
-            // Main direction is along the normal, with some random spread
+            // Random rotation for more natural appearance
+            particle.rotation.set(
+                Math.random() * Math.PI * 2,
+                Math.random() * Math.PI * 2,
+                Math.random() * Math.PI * 2
+            );
+            
+            // Slightly varied starting position for more natural dispersion
+            const posOffset = 0.05;
+            particle.position.copy(position).add(
+                new THREE.Vector3(
+                    (Math.random() - 0.5) * posOffset,
+                    (Math.random() - 0.5) * posOffset,
+                    (Math.random() - 0.5) * posOffset
+                )
+            );
+            
+            // Create velocity vector for paint-like motion
             const particleVelocity = new THREE.Vector3();
             
             // Add normal component (bouncing off surface)
-            particleVelocity.copy(normal).multiplyScalar(velocity * (0.5 + Math.random() * 0.8));
+            particleVelocity.copy(normal).multiplyScalar(velocity * (0.3 + Math.random() * 0.8));
             
-            // Add random spread component
+            // Add random spread component with wider spread for paint splatter effect
             const randomSpread = new THREE.Vector3(
-                (Math.random() - 0.5) * velocity,
-                (Math.random() - 0.5) * velocity,
-                (Math.random() - 0.5) * velocity
+                (Math.random() - 0.5) * velocity * 1.8,
+                (Math.random() - 0.5) * velocity * 1.2,
+                (Math.random() - 0.5) * velocity * 1.8
             );
             
-            // Adjust for floor or wall surfaces
+            // Adjust for different surface types
             if (surfaceType === 'floor') {
-                // For floor impacts, particles should mostly go upward
-                randomSpread.y = Math.abs(randomSpread.y);
+                // Floor impacts: more upward spray with wide splash
+                randomSpread.y = Math.abs(randomSpread.y) * 0.7;
+                randomSpread.x *= 1.5;
+                randomSpread.z *= 1.5;
+            } else if (surfaceType === 'wall') {
+                // Wall impacts: more horizontal spread with dripping tendency
+                randomSpread.y *= 0.7;
+                if (Math.random() > 0.6) randomSpread.y = -Math.abs(randomSpread.y) * 0.5; // Dripping effect
+                randomSpread.x *= 1.8;
+                randomSpread.z *= 1.8;
             }
             
             particleVelocity.add(randomSpread);
             
-            // Store velocity and lifetime with the particle
+            // Store properties with the particle
             particle.userData = {
                 velocity: particleVelocity,
-                lifetime: 0.5 + Math.random() * 0.5, // 0.5 to 1 second lifetime
+                lifetime: 0.5 + Math.random() * 0.8, // 0.5 to 1.3 second lifetime for more variation
                 startTime: Date.now(),
-                gravity: surfaceType === 'floor' ? 0.001 : 0.003 // Less gravity for floor impacts
+                gravity: surfaceType === 'floor' ? 0.001 : 0.003,
+                isDripping: Math.random() > 0.7 && surfaceType === 'wall', // 30% chance of dripping on walls
+                originalScale: particle.scale.clone(),
+                surfaceNormal: normal.clone(),
+                surfaceType: surfaceType
             };
             
             // Add to scene and tracker array
@@ -1385,6 +1950,7 @@ export default class Weapon {
                 const particle = particles[i];
                 const data = particle.userData;
                 const elapsed = (now - data.startTime) / 1000; // seconds
+                const lifetimeFraction = elapsed / data.lifetime;
                 
                 if (elapsed < data.lifetime) {
                     allDone = false;
@@ -1392,14 +1958,54 @@ export default class Weapon {
                     // Update position based on velocity
                     particle.position.add(data.velocity);
                     
-                    // Apply gravity to velocity
+                    // Apply gravity 
                     data.velocity.y -= data.gravity;
                     
-                    // Slow down velocity due to air resistance
-                    data.velocity.multiplyScalar(0.95);
+                    // Air resistance - paint is viscous so it slows down faster than normal particles
+                    data.velocity.multiplyScalar(0.96);
+                    
+                    // Special behaviors based on particle properties
+                    if (data.isDripping && lifetimeFraction > 0.3) {
+                        // Dripping behavior for wall impacts
+                        // Slow horizontal movement
+                        data.velocity.x *= 0.9;
+                        data.velocity.z *= 0.9;
+                        
+                        // Increase downward velocity for dripping effect
+                        data.velocity.y -= 0.001;
+                        
+                        // Elongate the particle to simulate dripping
+                        if (lifetimeFraction > 0.5) {
+                            const stretchFactor = 1 + (lifetimeFraction - 0.5) * 3;
+                            particle.scale.y = data.originalScale.y * stretchFactor;
+                            particle.scale.x = data.originalScale.x * Math.max(0.5, 1 - (lifetimeFraction - 0.5));
+                            particle.scale.z = data.originalScale.z * Math.max(0.5, 1 - (lifetimeFraction - 0.5));
+                        }
+                    } else if (lifetimeFraction > 0.7) {
+                        // For particles near end of life, flatten against surface for splat effect
+                        const flattenFactor = (lifetimeFraction - 0.7) / 0.3; // 0 to 1 over the last 30% of lifetime
+                        
+                        // Align with surface and flatten
+                        if (!data.hasFlattened) {
+                            // Orient to surface
+                            if (data.surfaceType === 'wall') {
+                                particle.lookAt(particle.position.clone().add(data.surfaceNormal));
+                            }
+                            data.hasFlattened = true;
+                        }
+                        
+                        // Flatten against surface
+                        particle.scale.y = data.originalScale.y * Math.max(0.1, 1 - flattenFactor * 0.9);
+                        particle.scale.x = data.originalScale.x * (1 + flattenFactor * 0.3);
+                        particle.scale.z = data.originalScale.z * (1 + flattenFactor * 0.3);
+                        
+                        // Slow movement drastically as particle sticks to surface
+                        data.velocity.multiplyScalar(0.85);
+                    }
                     
                     // Fade out based on lifetime
-                    particle.material.opacity = 0.8 * (1 - elapsed / data.lifetime);
+                    particle.material.opacity = 0.9 * (1 - lifetimeFraction * lifetimeFraction); // Quadratic fade for more natural look
+                    
                 } else {
                     // Remove expired particles
                     this.scene.remove(particle);
@@ -1427,8 +2033,8 @@ export default class Weapon {
      */
     generatePaintSplashTexture(paintColor, surfaceType) {
         const canvas = document.createElement('canvas');
-        canvas.width = 256; // Higher resolution for more detail
-        canvas.height = 256;
+        canvas.width = 512; // Higher resolution for more detailed splatter
+        canvas.height = 512;
         const context = canvas.getContext('2d');
         
         // Clear canvas
@@ -1444,11 +2050,11 @@ export default class Weapon {
         const centerY = canvas.height / 2;
         
         // Define splash radius based on surface type
-        const splashRadius = surfaceType === 'wall' ? canvas.width / 2.5 : canvas.width / 3;
+        const splashRadius = surfaceType === 'wall' ? canvas.width / 2.3 : canvas.width / 2.8;
         
         // Create main paint blob with translucent center
         const mainGradient = context.createRadialGradient(
-            centerX, centerY, 0,
+            centerX, centerY, splashRadius * 0.6,
             centerX, centerY, splashRadius
         );
         
@@ -1462,12 +2068,12 @@ export default class Weapon {
         context.save();
         context.beginPath();
         
-        // Generate irregular blob with 8-12 points
-        const points = 8 + Math.floor(Math.random() * 5);
+        // Generate irregular blob with more points for more complex shape
+        const points = 15 + Math.floor(Math.random() * 5);
         const angleStep = (Math.PI * 2) / points;
-        const irregularity = 0.3; // How irregular the shape can be
+        const irregularity = 0.2;
         
-        // Start at first point
+        // Starting point
         const firstRadius = splashRadius * (1 - irregularity/2 + Math.random() * irregularity);
         const firstX = centerX + Math.cos(0) * firstRadius;
         const firstY = centerY + Math.sin(0) * firstRadius;
@@ -1478,12 +2084,12 @@ export default class Weapon {
             const angle = i * angleStep;
             const prevAngle = (i - 1) * angleStep;
             
-            // Random radius for this point
+            // Random radius for this point with more variation
             const radius = splashRadius * (1 - irregularity/2 + Math.random() * irregularity);
             const x = centerX + Math.cos(angle) * radius;
             const y = centerY + Math.sin(angle) * radius;
             
-            // Control points for bezier curve
+            // Control points for bezier curve - add more variance for paint-like appearance
             const cp1x = centerX + Math.cos(prevAngle + angleStep/3) * radius * 1.1;
             const cp1y = centerY + Math.sin(prevAngle + angleStep/3) * radius * 1.1;
             const cp2x = centerX + Math.cos(angle - angleStep/3) * radius * 1.1;
@@ -1498,107 +2104,235 @@ export default class Weapon {
         context.fill();
         context.restore();
         
-        // Surface-specific effects
-        if (surfaceType === 'wall') {
-            // Add drips for wall impacts
-            const dripCount = 3 + Math.floor(Math.random() * 4); // 3-6 drips
+        // Add paint "arms" - extending splatters from the main blob
+        const numArms = 10 + Math.floor(Math.random() * 8); // 10-17 arms
+        
+        for (let i = 0; i < numArms; i++) {
+            context.save();
             
-            for (let i = 0; i < dripCount; i++) {
-                const angle = Math.random() * Math.PI * 2;
-                // More drips at the bottom half for walls
-                const adjustedAngle = (angle + Math.PI) / 2;
+            // Start from a random point near the edge of the main blob
+            const angle = Math.random() * Math.PI * 2;
+            const startRadius = splashRadius * (0.4 + Math.random() * 0.5);
+            const startX = centerX + Math.cos(angle) * startRadius;
+            const startY = centerY + Math.sin(angle) * startRadius;
+            
+            // Arm length and width
+            const armLength = splashRadius * (0.3 + Math.random() * 0.7); // 30-100% of radius
+            const armWidth = armLength * (0.1 + Math.random() * 0.2);
+            
+            // End point
+            const endX = centerX + Math.cos(angle) * (startRadius + armLength);
+            const endY = centerY + Math.sin(angle) * (startRadius + armLength);
+            
+            // Create gradient for the arm
+            const armGradient = context.createLinearGradient(startX, startY, endX, endY);
+            armGradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, 0.9)`);
+            armGradient.addColorStop(0.6, `rgba(${r}, ${g}, ${b}, 0.7)`);
+            armGradient.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0.2)`);
+            
+            // Draw the arm
+            context.beginPath();
+            context.moveTo(startX, startY);
+            
+            // Add slight curve to drip for realism
+            const ctrlX = startX + (Math.random() - 0.5) * 15;
+            const ctrlY = startY + armLength * 0.6;
+            
+            context.quadraticCurveTo(ctrlX, ctrlY, endX, endY);
+            context.lineWidth = armWidth;
+            context.lineCap = 'round';
+            context.strokeStyle = armGradient;
+            context.stroke();
+            
+            // Add a paint droplet at the end of some arms
+            if (Math.random() > 0.4) {
+                // Base drop size on arm width
+                const dropSize = armWidth * (1.2 + Math.random() * 0.5);
                 
-                const dripStart = splashRadius * 0.7;
-                const dripLength = 15 + Math.random() * 35; // 15-50px drips
-                const dripWidth = 3 + Math.random() * 7; // 3-10px width
-                
-                const startX = centerX + Math.cos(adjustedAngle) * dripStart;
-                const startY = centerY + Math.sin(adjustedAngle) * dripStart;
-                const endX = centerX + Math.cos(adjustedAngle) * (dripStart + dripLength);
-                const endY = centerY + Math.sin(adjustedAngle) * (dripStart + dripLength);
-                
-                // Create drip gradient
-                const dripGradient = context.createLinearGradient(startX, startY, endX, endY);
-                dripGradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, 0.9)`);
-                dripGradient.addColorStop(0.7, `rgba(${r}, ${g}, ${b}, 0.7)`);
-                dripGradient.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`);
-                
-                // Draw drip
                 context.beginPath();
-                context.moveTo(startX, startY);
                 
-                // Slightly curved drip path
-                const ctrlX = startX + (Math.random() - 0.5) * 10;
-                const ctrlY = startY + (endY - startY) * 0.6;
-                context.quadraticCurveTo(ctrlX, ctrlY, endX, endY);
+                // Either teardrop or round droplet
+                if (Math.random() > 0.5) {
+                    context.arc(endX, endY, dropSize, 0, Math.PI * 2);
+                } else {
+                    // Teardrop shape
+                    context.ellipse(
+                        endX, 
+                        endY, 
+                        dropSize * 0.8, 
+                        dropSize * 1.5, 
+                        angle, 
+                        0, 
+                        Math.PI * 2
+                    );
+                }
                 
+                context.fillStyle = `rgba(${r}, ${g}, ${b}, 0.8)`;
+                context.fill();
+            }
+            
+            context.restore();
+        }
+        
+        // Add small scattered droplets around the main splash
+        const numDroplets = 20 + Math.floor(Math.random() * 15); // 20-34 droplets
+        
+        for (let i = 0; i < numDroplets; i++) {
+            const dropAngle = Math.random() * Math.PI * 2;
+            const dropDistance = splashRadius * (0.8 + Math.random() * 0.7); // Further from center
+            const dropX = centerX + Math.cos(dropAngle) * dropDistance;
+            const dropY = centerY + Math.sin(dropAngle) * dropDistance;
+            
+            const dropSize = 1 + Math.random() * 5;
+            
+            // Add slight color variation to droplets
+            const colorVar = 20 * (Math.random() - 0.5);
+            const dropR = Math.max(0, Math.min(255, r + colorVar));
+            const dropG = Math.max(0, Math.min(255, g + colorVar));
+            const dropB = Math.max(0, Math.min(255, b + colorVar));
+            
+            context.fillStyle = `rgba(${dropR}, ${dropG}, ${dropB}, ${0.4 + Math.random() * 0.5})`;
+            
+            context.beginPath();
+            if (Math.random() > 0.3) {
+                // Circular droplet
+                context.arc(dropX, dropY, dropSize, 0, Math.PI * 2);
+            } else {
+                // Irregular droplet
+                const irregularDropPoints = 4 + Math.floor(Math.random() * 3);
+                const dropAngleStep = (Math.PI * 2) / irregularDropPoints;
+                
+                for (let j = 0; j <= irregularDropPoints; j++) {
+                    const pointAngle = j * dropAngleStep;
+                    const pointRadius = dropSize * (0.7 + Math.random() * 0.6);
+                    const pointX = dropX + Math.cos(pointAngle) * pointRadius;
+                    const pointY = dropY + Math.sin(pointAngle) * pointRadius;
+                    
+                    if (j === 0) {
+                        context.moveTo(pointX, pointY);
+                    } else {
+                        context.lineTo(pointX, pointY);
+                    }
+                }
+            }
+            context.fill();
+        }
+        
+        // Add surface-specific effects
+        if (surfaceType === 'wall') {
+            // For walls, add dripping effect
+            const numDrips = 4 + Math.floor(Math.random() * 4); // 4-7 drips
+            
+            for (let i = 0; i < numDrips; i++) {
+                // Start from bottom half of the splash
+                const angle = Math.PI/2 + (Math.random() - 0.5) * Math.PI; // Mainly downward
+                const dripStartRadius = splashRadius * (0.4 + Math.random() * 0.5);
+                const dripStartX = centerX + Math.cos(angle) * dripStartRadius;
+                const dripStartY = centerY + Math.sin(angle) * dripStartRadius;
+                
+                // Drip properties
+                const dripLength = 30 + Math.random() * 70; // 30-100px
+                const dripWidth = 4 + Math.random() * 8; // 4-12px
+                
+                // End point
+                const dripEndX = dripStartX + Math.cos(angle + (Math.random() - 0.5) * 0.3) * dripLength;
+                const dripEndY = dripStartY + Math.sin(angle + (Math.random() - 0.5) * 0.3) * dripLength;
+                
+                // Create gradient for drip
+                const dripGradient = context.createLinearGradient(dripStartX, dripStartY, dripEndX, dripEndY);
+                dripGradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, 0.9)`);
+                dripGradient.addColorStop(0.6, `rgba(${r}, ${g}, ${b}, 0.7)`);
+                dripGradient.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0.2)`);
+                
+                // Draw drip path
+                context.beginPath();
+                context.moveTo(dripStartX, dripStartY);
+                
+                // Add slight curve to drip for realism
+                const ctrlX = dripStartX + (Math.random() - 0.5) * 15;
+                const ctrlY = dripStartY + dripLength * 0.6;
+                
+                context.quadraticCurveTo(ctrlX, ctrlY, dripEndX, dripEndY);
                 context.lineWidth = dripWidth;
                 context.lineCap = 'round';
                 context.strokeStyle = dripGradient;
                 context.stroke();
                 
-                // Add a droplet at the end of some drips
-                if (Math.random() > 0.3) { // 70% chance
-                    const dropSize = dripWidth * 1.5;
+                // Add droplet at end of drip
+                if (Math.random() > 0.3) {
+                    // Base drop size on drip width
+                    const dropSize = dripWidth * (1.2 + Math.random() * 0.5);
+                    
                     context.beginPath();
-                    context.arc(endX, endY, dropSize, 0, Math.PI * 2);
+                    
+                    // Either teardrop or round droplet
+                    if (Math.random() > 0.5) {
+                        context.arc(dripEndX, dripEndY, dropSize, 0, Math.PI * 2);
+                    } else {
+                        // Teardrop shape
+                        context.ellipse(
+                            dripEndX, 
+                            dripEndY, 
+                            dropSize * 0.8, 
+                            dropSize * 1.5, 
+                            angle, 
+                            0, 
+                            Math.PI * 2
+                        );
+                    }
+                    
                     context.fillStyle = `rgba(${r}, ${g}, ${b}, 0.8)`;
                     context.fill();
                 }
             }
-        } else {
-            // Add small paint splatters around for floor impacts
-            const splatterCount = 8 + Math.floor(Math.random() * 7); // 8-14 splatters
+        } else if (surfaceType === 'floor') {
+            // For floors, add puddle effect
+            context.save();
             
-            for (let i = 0; i < splatterCount; i++) {
-                const angle = Math.random() * Math.PI * 2;
-                const distance = splashRadius * 0.5 + Math.random() * splashRadius * 0.7;
-                const x = centerX + Math.cos(angle) * distance;
-                const y = centerY + Math.sin(angle) * distance;
-                const size = 2 + Math.random() * 8; // 2-10px splatters
+            // Create puddle underneath main splatter
+            const puddleRadius = splashRadius * 1.3;
+            const puddleGradient = context.createRadialGradient(
+                centerX, centerY, splashRadius * 0.6,
+                centerX, centerY, puddleRadius
+            );
+            
+            puddleGradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, 0.3)`);
+            puddleGradient.addColorStop(0.7, `rgba(${r}, ${g}, ${b}, 0.15)`);
+            puddleGradient.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`);
+            
+            // Create irregular puddle shape
+            context.beginPath();
+            
+            const puddlePoints = 15 + Math.floor(Math.random() * 5);
+            const puddleAngleStep = (Math.PI * 2) / puddlePoints;
+            const puddleIrregularity = 0.2;
+            
+            // Starting point
+            const puddleFirstRadius = puddleRadius * (1 - puddleIrregularity/2 + Math.random() * puddleIrregularity);
+            const puddleFirstX = centerX + Math.cos(0) * puddleFirstRadius;
+            const puddleFirstY = centerY + Math.sin(0) * puddleFirstRadius;
+            context.moveTo(puddleFirstX, puddleFirstY);
+            
+            // Draw the puddle outline
+            for (let i = 1; i <= puddlePoints; i++) {
+                const puddleAngle = i * puddleAngleStep;
+                const puddleRadius = puddleRadius * (1 - puddleIrregularity/2 + Math.random() * puddleIrregularity);
+                const puddleX = centerX + Math.cos(puddleAngle) * puddleRadius;
+                const puddleY = centerY + Math.sin(puddleAngle) * puddleRadius;
                 
-                // Slight color variation for visual interest
-                const colorVariation = 20 * (Math.random() - 0.5);
-                const rVar = Math.max(0, Math.min(255, r + colorVariation));
-                const gVar = Math.max(0, Math.min(255, g + colorVariation));
-                const bVar = Math.max(0, Math.min(255, b + colorVariation));
+                const prevAngle = (i - 1) * puddleAngleStep;
+                const cp1x = centerX + Math.cos(prevAngle + puddleAngleStep/3) * puddleRadius * 1.1;
+                const cp1y = centerY + Math.sin(prevAngle + puddleAngleStep/3) * puddleRadius * 1.1;
+                const cp2x = centerX + Math.cos(puddleAngle - puddleAngleStep/3) * puddleRadius * 1.1;
+                const cp2y = centerY + Math.sin(puddleAngle - puddleAngleStep/3) * puddleRadius * 1.1;
                 
-                context.fillStyle = `rgba(${rVar}, ${gVar}, ${bVar}, ${0.6 + Math.random() * 0.3})`;
-                
-                // Randomly choose between circular and irregular splatters
-                if (Math.random() > 0.5) {
-                    // Circular splatter
-                    context.beginPath();
-                    context.arc(x, y, size, 0, Math.PI * 2);
-                    context.fill();
-                } else {
-                    // Irregular splatter
-                    context.beginPath();
-                    const splatterPoints = 5 + Math.floor(Math.random() * 3);
-                    const splatterAngleStep = (Math.PI * 2) / splatterPoints;
-                    
-                    // First point
-                    const firstSplatterRadius = size * (0.8 + Math.random() * 0.4);
-                    context.moveTo(
-                        x + Math.cos(0) * firstSplatterRadius,
-                        y + Math.sin(0) * firstSplatterRadius
-                    );
-                    
-                    // Remaining points
-                    for (let j = 1; j <= splatterPoints; j++) {
-                        const splatterAngle = j * splatterAngleStep;
-                        const splatterRadius = size * (0.8 + Math.random() * 0.4);
-                        
-                        context.lineTo(
-                            x + Math.cos(splatterAngle) * splatterRadius,
-                            y + Math.sin(splatterAngle) * splatterRadius
-                        );
-                    }
-                    
-                    context.closePath();
-                    context.fill();
-                }
+                context.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, puddleX, puddleY);
             }
+            
+            context.closePath();
+            context.fillStyle = puddleGradient;
+            context.fill();
+            context.restore();
         }
         
         return new THREE.CanvasTexture(canvas);
@@ -1686,7 +2420,7 @@ export default class Weapon {
             context.fill();
             
             // Occasionally add drip effects
-            if (Math.random() > 0.5) {
+            if (Math.random() > 0.5) { // 50% chance
                 const dripLength = 10 + Math.random() * 30;
                 const dripWidth = size * 0.7;
                 
