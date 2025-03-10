@@ -67,36 +67,36 @@ export default class Weapon {
                 bulletSpeed: 1.5,
                 damage: 10,
                 shootingDelay: 250,
-                bulletSize: 0.05,
-                bulletColor: 0xff0000,
+                bulletSize: 0.08,
+                bulletColor: 0xff0000,  // Red paintballs for pistol
                 modelScale: { x: 0.1, y: 0.1, z: 0.5 },
                 position: { x: 0.3, y: -0.2, z: -0.5 },
-                maxAmmo: 30,
-                currentAmmo: 30,
-                reloadTime: 2000,
-                weaponType: 'automatic'
+                maxAmmo: 20,  // Lower ammo for paintball pistol
+                currentAmmo: 20,
+                reloadTime: 1500,
+                weaponType: 'paintball_pistol'
             },
             sniper: {
                 model: null,
-                bulletSpeed: 3.0,
-                damage: 50,
-                shootingDelay: 1000,
+                bulletSpeed: 2.0,
+                damage: 15,  // Lower damage for balance with faster firing
+                shootingDelay: 100,  // Much faster fire rate for assault rifle style
                 bulletSize: 0.08,
-                bulletColor: 0x0000ff,
+                bulletColor: 0xff5500,  // Orange paintballs for rifle
                 modelScale: { x: 0.1, y: 0.1, z: 0.8 },
                 position: { x: 0.3, y: -0.2, z: -0.7 },
-                maxAmmo: 5,
-                currentAmmo: 5,
-                reloadTime: 2500,
-                weaponType: 'precision'
+                maxAmmo: 100,  // More ammo for rapid-fire paintball rifle (hopper)
+                currentAmmo: 100,
+                reloadTime: 2000,
+                weaponType: 'paintball_rifle'
             },
             paintball: {
                 model: null,
-                bulletSpeed: 1.0,
-                damage: 5,
-                shootingDelay: 500,
-                bulletSize: 0.1,
-                bulletColor: 0x00ff00,
+                bulletSpeed: 2.5,  // Faster for sniper
+                damage: 40,  // More damage for sniper
+                shootingDelay: 800,  // Slower but more powerful
+                bulletSize: 0.09,
+                bulletColor: 0x0000ff,  // Blue paintballs for sniper
                 modelScale: { x: 0.1, y: 0.1, z: 0.5 },
                 position: { x: 0.3, y: -0.2, z: -0.5 },
                 maxAmmo: 20,
@@ -127,6 +127,7 @@ export default class Weapon {
             
             // Create weapon selection indicators
             const weapons = ['rifle', 'sniper', 'paintball'];
+            const weaponLabels = ['Pistol', 'Rifle', 'Sniper'];
             const keys = ['1', '2', '3'];
             
             weapons.forEach((weapon, index) => {
@@ -152,10 +153,11 @@ export default class Weapon {
                 keyEl.style.fontWeight = 'bold';
                 indicator.appendChild(keyEl);
                 
-                // Add weapon name
+                // Add weapon name with paintball theme
                 const nameEl = document.createElement('div');
-                nameEl.textContent = weapon.charAt(0).toUpperCase() + weapon.slice(1);
-                nameEl.style.fontSize = '14px';
+                nameEl.textContent = weaponLabels[index];
+                nameEl.style.fontSize = '12px';
+                nameEl.style.textAlign = 'center';
                 indicator.appendChild(nameEl);
                 
                 // Add click handler to select this weapon
@@ -294,9 +296,9 @@ export default class Weapon {
             this.setInitialWeaponVisibility();
             
             // Add weapon names for debugging
-            this.weapons.rifle.model.name = 'rifle';
-            this.weapons.sniper.model.name = 'sniper';
-            this.weapons.paintball.model.name = 'paintball';
+            this.weapons.rifle.model.name = 'paintball_pistol';
+            this.weapons.sniper.model.name = 'paintball_rifle';
+            this.weapons.paintball.model.name = 'paintball_sniper';
             
         } catch (error) {
             console.error('Error creating weapon models:', error);
@@ -594,13 +596,15 @@ export default class Weapon {
     handleMouseDown(event) {
         if (event.button === 0) { // Left click
             this.shoot(event);
-        } else if (event.button === 2 && this.currentWeapon === 'sniper') { // Right click for scope
+        } else if (event.button === 2 && (this.currentWeapon === 'sniper' || this.currentWeapon === 'paintball')) { // Right click for scope - sniper and paintball sniper
             this.toggleScope(true);
         }
     }
 
     handleMouseUp(event) {
-        if (event.button === 2 && this.currentWeapon === 'sniper') {
+        if (event.button === 0) { // Left mouse button released
+            this.autoFiring = false;
+        } else if (event.button === 2 && (this.currentWeapon === 'sniper' || this.currentWeapon === 'paintball')) {
             this.toggleScope(false);
         }
     }
@@ -611,9 +615,9 @@ export default class Weapon {
      */
     toggleScope(scoped) {
         try {
-            // Only continue if current weapon is a sniper rifle
-            if (this.currentWeapon !== 'sniper') {
-                console.log('Scope toggle only available for sniper rifle');
+            // Only continue if current weapon is a sniper rifle or paintball sniper
+            if (this.currentWeapon !== 'sniper' && this.currentWeapon !== 'paintball') {
+                console.log('Scope toggle only available for sniper rifles');
                 return;
             }
             
@@ -839,8 +843,11 @@ export default class Weapon {
      */
     shoot(event) {
         try {
-            // Validate event is left click
-            if (event.button !== 0) return; 
+            // If event is provided, check if it's left click and start auto-firing
+            if (event) {
+                if (event.button !== 0) return;
+                this.autoFiring = true;
+            }
             
             // Don't shoot if weapon is in transition state
             if (this.reloadState.active || this.switchState.active) return;
@@ -963,7 +970,17 @@ export default class Weapon {
         bullet.position.add(direction.clone().multiplyScalar(0.5));
         
         // Add small random spread for realistic shooting
-        const spreadFactor = weaponProps.weaponType === 'precision' ? 0.001 : 0.01;
+        let spreadFactor = 0.01; // Default spread
+        
+        // Different spread based on paintball weapon type
+        if (weaponProps.weaponType === 'paintball_sniper') {
+            spreadFactor = this.isScoped ? 0.0005 : 0.008; // Very accurate when scoped
+        } else if (weaponProps.weaponType === 'paintball_rifle') {
+            spreadFactor = 0.007; // Medium accuracy
+        } else if (weaponProps.weaponType === 'paintball_pistol') {
+            spreadFactor = 0.012; // Less accurate pistol
+        }
+        
         direction.x += (Math.random() - 0.5) * spreadFactor;
         direction.y += (Math.random() - 0.5) * spreadFactor;
         direction.z += (Math.random() - 0.5) * spreadFactor;
@@ -1557,21 +1574,28 @@ export default class Weapon {
             let particleCount, particleSize, particleVelocity, impactRadius;
             
             switch (weaponType) {
-                case 'sniper':
+                case 'paintball_rifle':
                     particleCount = 20;  // More particles for bigger splatter
                     particleSize = 0.025;
                     particleVelocity = 0.18;
                     impactRadius = 0.15; // Larger impact
                     break;
+                
+                case 'paintball_sniper':
+                    particleCount = 25;  // More particles for bigger splatter
+                    particleSize = 0.03;
+                    particleVelocity = 0.2;
+                    impactRadius = 0.18; // Largest impact
+                    break;
                     
-                case 'rifle':
+                case 'paintball_pistol':
                     particleCount = 15;
                     particleSize = 0.02;
                     particleVelocity = 0.14;
                     impactRadius = 0.12;
                     break;
                     
-                default: // paintball and other weapons
+                default: // other weapons
                     particleCount = 12;
                     particleSize = 0.018;
                     particleVelocity = 0.12;

@@ -46,17 +46,16 @@ class WeaponModels {
     }
 
     /**
-     * Creates the rifle weapon model
+     * Creates the paintball pistol weapon model
      * @param {THREE.BoxGeometry} sharedGeometry - Shared geometry for optimization
      * @private
      */
-    createRifleModel(sharedGeometry) {
-        // Create enhanced rifle materials with high visibility for debugging
-        const rifleMaterial = new this.THREE.MeshStandardMaterial({ 
-            color: 0xFF5533, // Bright orange for visibility
+    createPaintballPistolModel(sharedGeometry) {
+        // Create enhanced paintball pistol materials
+        const pistolMaterial = new this.THREE.MeshStandardMaterial({ 
+            color: 0x0066FF, // Blue for pistol
             roughness: 0.7,
-            metalness: 0.4,
-            emissive: 0x441111 // Add slight emissive glow
+            metalness: 0.3
         });
         
         // Materials for different parts
@@ -72,52 +71,106 @@ class WeaponModels {
             metalness: 0.1
         });
         
-        // Create detailed rifle model
+        const tankMaterial = new this.THREE.MeshStandardMaterial({
+            color: 0x333333,
+            roughness: 0.2,
+            metalness: 0.9
+        });
+        
+        // Create detailed paintball pistol model
         this.weaponModels.rifle = new this.THREE.Group();
         
-        // Main body (more complex geometry)
-        const mainBodyGeometry = new this.THREE.BoxGeometry(0.1, 0.08, 0.5);
-        const mainBody = new this.THREE.Mesh(mainBodyGeometry, rifleMaterial);
+        // Main body (compact pistol shape)
+        const mainBodyGeometry = new this.THREE.BoxGeometry(0.1, 0.08, 0.25);
+        const mainBody = new this.THREE.Mesh(mainBodyGeometry, pistolMaterial);
         this.weaponModels.rifle.add(mainBody);
         
-        // Upper receiver
-        const upperGeometry = new this.THREE.BoxGeometry(0.1, 0.04, 0.3);
-        const upperReceiver = new this.THREE.Mesh(upperGeometry, metalMaterial);
-        upperReceiver.position.set(0, 0.06, -0.05);
-        this.weaponModels.rifle.add(upperReceiver);
+        // Barrel shroud
+        const shroudGeometry = new this.THREE.BoxGeometry(0.09, 0.06, 0.15);
+        const shroud = new this.THREE.Mesh(shroudGeometry, pistolMaterial);
+        shroud.position.set(0, 0.01, -0.15);
+        this.weaponModels.rifle.add(shroud);
         
-        // Grip
-        const gripGeometry = new this.THREE.BoxGeometry(0.08, 0.12, 0.05);
+        // Grip (larger for paintball pistol)
+        const gripGeometry = new this.THREE.BoxGeometry(0.08, 0.14, 0.07);
         const grip = new this.THREE.Mesh(gripGeometry, gripMaterial);
-        grip.position.set(0, -0.1, 0.1);
-        grip.rotation.set(-0.3, 0, 0);
+        grip.position.set(0, -0.1, 0.08);
+        grip.rotation.set(-0.1, 0, 0);
         this.weaponModels.rifle.add(grip);
         
-        // Magazine
-        const magGeometry = new this.THREE.BoxGeometry(0.06, 0.15, 0.04);
-        const magazine = new this.THREE.Mesh(magGeometry, rifleMaterial);
-        magazine.position.set(0, -0.11, 0.05);
-        this.weaponModels.rifle.add(magazine);
+        // Trigger guard
+        const guardGeometry = new this.THREE.BoxGeometry(0.07, 0.04, 0.06);
+        const guard = new this.THREE.Mesh(guardGeometry, pistolMaterial);
+        guard.position.set(0, -0.03, 0.05);
+        this.weaponModels.rifle.add(guard);
         
-        // Barrel (more detailed)
-        const barrelGeometry = new this.THREE.CylinderGeometry(0.02, 0.02, 0.4, 8);
+        // Trigger
+        const triggerGeometry = new this.THREE.BoxGeometry(0.015, 0.05, 0.02);
+        const trigger = new this.THREE.Mesh(triggerGeometry, metalMaterial);
+        trigger.position.set(0, -0.07, 0.05);
+        this.weaponModels.rifle.add(trigger);
+        
+        // Barrel (typical paintball pistol barrel)
+        const barrelGeometry = new this.THREE.CylinderGeometry(0.015, 0.015, 0.25, 8);
         const barrel = new this.THREE.Mesh(barrelGeometry, metalMaterial);
         barrel.rotation.set(Math.PI/2, 0, 0);
-        barrel.position.set(0, 0.02, -0.35);
+        barrel.position.set(0, 0.01, -0.25);
         this.weaponModels.rifle.add(barrel);
         
-        // Muzzle brake
-        const muzzleGeometry = new this.THREE.CylinderGeometry(0.03, 0.03, 0.05, 8);
-        const muzzle = new this.THREE.Mesh(muzzleGeometry, metalMaterial);
-        muzzle.rotation.set(Math.PI/2, 0, 0);
-        muzzle.position.set(0, 0.02, -0.55);
-        this.weaponModels.rifle.add(muzzle);
+        // 12-gram CO2 cartridge (typical for paintball pistols)
+        const co2Geometry = new this.THREE.CylinderGeometry(0.02, 0.02, 0.12, 8);
+        const co2 = new this.THREE.Mesh(co2Geometry, tankMaterial);
+        co2.rotation.set(0, 0, Math.PI/2);
+        co2.position.set(0, -0.04, 0.17);
+        this.weaponModels.rifle.add(co2);
         
-        // Front sight
-        const sightGeometry = new this.THREE.BoxGeometry(0.02, 0.04, 0.02);
-        const frontSight = new this.THREE.Mesh(sightGeometry, metalMaterial);
-        frontSight.position.set(0, 0.06, -0.45);
-        this.weaponModels.rifle.add(frontSight);
+        // Small feed tube (paintball chamber area)
+        const feedGeometry = new this.THREE.BoxGeometry(0.04, 0.04, 0.08);
+        const feed = new this.THREE.Mesh(feedGeometry, pistolMaterial);
+        feed.position.set(0, 0.06, 0);
+        this.weaponModels.rifle.add(feed);
+        
+        // Small ammo chamber (8-round tube typical for pistol)
+        const chamberGeometry = new this.THREE.CylinderGeometry(0.02, 0.02, 0.15, 8);
+        const chamber = new this.THREE.Mesh(chamberGeometry, new this.THREE.MeshStandardMaterial({
+            color: 0x444444,
+            transparent: true,
+            opacity: 0.7,
+            roughness: 0.1
+        }));
+        chamber.rotation.set(0, 0, Math.PI/2);
+        chamber.position.set(0, 0.1, 0);
+        this.weaponModels.rifle.add(chamber);
+        
+        // Add a few visible paintballs in the chamber
+        for (let i = 0; i < 3; i++) {
+            const paintballGeometry = new this.THREE.SphereGeometry(0.015, 8, 8);
+            
+            // Random paintball colors
+            const paintballColors = [
+                0xdd0000, // red
+                0x0000dd, // blue
+                0xdddd00, // yellow
+                0x00dd00, // green
+            ];
+            
+            const paintballColor = paintballColors[Math.floor(Math.random() * paintballColors.length)];
+            const paintballMatl = new this.THREE.MeshStandardMaterial({ 
+                color: paintballColor,
+                roughness: 0.1,
+                metalness: 0.0
+            });
+            
+            const paintball = new this.THREE.Mesh(paintballGeometry, paintballMatl);
+            paintball.position.set(0, 0.1, -0.03 + (i * 0.03));
+            this.weaponModels.rifle.add(paintball);
+        }
+        
+        // Small rail for accessories
+        const railGeometry = new this.THREE.BoxGeometry(0.04, 0.015, 0.1);
+        const rail = new this.THREE.Mesh(railGeometry, metalMaterial);
+        rail.position.set(0, 0.06, -0.1);
+        this.weaponModels.rifle.add(rail);
         
         // Apply weapon configuration settings
         if (this.weaponConfigs.rifle) {
@@ -137,21 +190,21 @@ class WeaponModels {
         // Add userData for collision detection
         this.weaponModels.rifle.userData = {
             isWeapon: true,
-            weaponType: 'rifle'
+            weaponType: 'paintball_pistol'
         };
     }
     
     /**
-     * Creates the sniper rifle weapon model
+     * Creates the paintball rifle (marker) weapon model
      * @param {THREE.BoxGeometry} sharedGeometry - Shared geometry for optimization
      * @private
      */
-    createSniperModel(sharedGeometry) {
-        // Advanced sniper materials with direct color
-        const sniperMaterial = new this.THREE.MeshStandardMaterial({ 
-            color: 0x555555,
-            roughness: 0.5,
-            metalness: 0.6
+    createPaintballRifleModel(sharedGeometry) {
+        // Advanced paintball rifle materials
+        const rifleMaterial = new this.THREE.MeshStandardMaterial({ 
+            color: 0xff3300, // Orange for the rifle model
+            roughness: 0.6,
+            metalness: 0.3
         });
         
         // Materials for different parts
@@ -161,107 +214,158 @@ class WeaponModels {
             metalness: 0.9
         });
         
-        const scopeMaterial = new this.THREE.MeshStandardMaterial({ 
-            color: 0x111111, 
-            roughness: 0.1, 
-            metalness: 0.9
-        });
-        
-        const stockMaterial = new this.THREE.MeshStandardMaterial({
+        const gripMaterial = new this.THREE.MeshStandardMaterial({
             color: 0x222222,
-            roughness: 0.8,
+            roughness: 0.9,
             metalness: 0.1
         });
         
-        // Create detailed sniper model group
+        const tankMaterial = new this.THREE.MeshStandardMaterial({ 
+            color: 0x333333,
+            roughness: 0.2,
+            metalness: 0.9
+        });
+        
+        const hopperMaterial = new this.THREE.MeshStandardMaterial({ 
+            color: 0x222222, 
+            transparent: true, 
+            opacity: 0.8,
+            roughness: 0.2
+        });
+        
+        // Create detailed paintball rifle model group
         this.weaponModels.sniper = new this.THREE.Group();
         
-        // Main body (longer and more slender)
-        const mainBodyGeometry = new this.THREE.BoxGeometry(0.08, 0.06, 1.0);
-        const mainBody = new this.THREE.Mesh(mainBodyGeometry, sniperMaterial);
+        // Main body (body of the marker)
+        const mainBodyGeometry = new this.THREE.BoxGeometry(0.1, 0.1, 0.3);
+        const mainBody = new this.THREE.Mesh(mainBodyGeometry, rifleMaterial);
         this.weaponModels.sniper.add(mainBody);
         
-        // Barrel (longer, higher precision look)
-        const barrelGeometry = new this.THREE.CylinderGeometry(0.015, 0.015, 0.8, 8);
-        const barrel = new this.THREE.Mesh(barrelGeometry, metalMaterial);
-        barrel.rotation.set(Math.PI/2, 0, 0);
-        barrel.position.set(0, 0.01, -0.55);
-        this.weaponModels.sniper.add(barrel);
+        // Front grip section
+        const frontGripGeometry = new this.THREE.BoxGeometry(0.08, 0.06, 0.25);
+        const frontGrip = new this.THREE.Mesh(frontGripGeometry, rifleMaterial);
+        frontGrip.position.set(0, -0.03, -0.2);
+        this.weaponModels.sniper.add(frontGrip);
         
-        // Muzzle brake
-        const muzzleGeometry = new this.THREE.CylinderGeometry(0.025, 0.02, 0.1, 8);
-        const muzzle = new this.THREE.Mesh(muzzleGeometry, metalMaterial);
-        muzzle.rotation.set(Math.PI/2, 0, 0);
-        muzzle.position.set(0, 0.01, -0.9);
-        this.weaponModels.sniper.add(muzzle);
+        // ASA (Air Source Adapter) - connects to tank
+        const asaGeometry = new this.THREE.BoxGeometry(0.06, 0.04, 0.08);
+        const asa = new this.THREE.Mesh(asaGeometry, metalMaterial);
+        asa.position.set(0, -0.03, 0.23);
+        this.weaponModels.sniper.add(asa);
         
-        // Stock (buttstock for sniper rifle)
-        const stockGeometry = new this.THREE.BoxGeometry(0.07, 0.1, 0.25);
-        const stock = new this.THREE.Mesh(stockGeometry, stockMaterial);
-        stock.position.set(0, -0.03, 0.4);
-        this.weaponModels.sniper.add(stock);
-        
-        // Grip
-        const gripGeometry = new this.THREE.BoxGeometry(0.06, 0.12, 0.04);
-        const grip = new this.THREE.Mesh(gripGeometry, stockMaterial);
-        grip.position.set(0, -0.09, 0.2);
-        grip.rotation.set(-0.2, 0, 0);
+        // Main grip (handle)
+        const gripGeometry = new this.THREE.BoxGeometry(0.08, 0.15, 0.07);
+        const grip = new this.THREE.Mesh(gripGeometry, gripMaterial);
+        grip.position.set(0, -0.12, 0.15);
+        grip.rotation.set(-0.1, 0, 0);
         this.weaponModels.sniper.add(grip);
         
-        // Magazine
-        const magGeometry = new this.THREE.BoxGeometry(0.05, 0.12, 0.03);
-        const magazine = new this.THREE.Mesh(magGeometry, sniperMaterial);
-        magazine.position.set(0, -0.09, 0.15);
-        this.weaponModels.sniper.add(magazine);
+        // Trigger guard
+        const guardGeometry = new this.THREE.BoxGeometry(0.07, 0.04, 0.06);
+        const guard = new this.THREE.Mesh(guardGeometry, rifleMaterial);
+        guard.position.set(0, -0.05, 0.15);
+        this.weaponModels.sniper.add(guard);
         
-        // Enhanced scope (more detailed)
-        const scopeBaseGeometry = new this.THREE.BoxGeometry(0.04, 0.02, 0.15);
-        const scopeBase = new this.THREE.Mesh(scopeBaseGeometry, metalMaterial);
-        scopeBase.position.set(0, 0.04, -0.1);
-        this.weaponModels.sniper.add(scopeBase);
+        // Trigger
+        const triggerGeometry = new this.THREE.BoxGeometry(0.015, 0.05, 0.02);
+        const trigger = new this.THREE.Mesh(triggerGeometry, metalMaterial);
+        trigger.position.set(0, -0.09, 0.15);
+        this.weaponModels.sniper.add(trigger);
         
-        // Scope tube
-        const scopeGeometry = new this.THREE.CylinderGeometry(0.025, 0.025, 0.25, 8);
-        const scope = new this.THREE.Mesh(scopeGeometry, scopeMaterial);
-        scope.rotation.set(Math.PI/2, 0, 0);
-        scope.position.set(0, 0.06, -0.1);
-        this.weaponModels.sniper.add(scope);
+        // HPA Tank (standard for most paintball markers)
+        const tankGeometry = new this.THREE.CylinderGeometry(0.04, 0.04, 0.25, 16);
+        const tank = new this.THREE.Mesh(tankGeometry, tankMaterial);
+        tank.rotation.set(Math.PI/2, 0, 0);
+        tank.position.set(0, -0.03, 0.4);
+        this.weaponModels.sniper.add(tank);
         
-        // Scope lens (front)
-        const lensGeometry = new this.THREE.CylinderGeometry(0.025, 0.025, 0.01, 16);
+        // Barrel (longer for a rifle marker)
+        const barrelGeometry = new this.THREE.CylinderGeometry(0.015, 0.015, 0.4, 12);
+        const barrel = new this.THREE.Mesh(barrelGeometry, metalMaterial);
+        barrel.rotation.set(Math.PI/2, 0, 0);
+        barrel.position.set(0, 0.01, -0.35);
+        this.weaponModels.sniper.add(barrel);
+        
+        // Barrel porting (holes near end of barrel)
+        const portingGeometry = new this.THREE.CylinderGeometry(0.02, 0.02, 0.08, 12);
+        const porting = new this.THREE.Mesh(portingGeometry, new this.THREE.MeshStandardMaterial({
+            color: 0x333333,
+            roughness: 0.3,
+            metalness: 0.8
+        }));
+        porting.rotation.set(Math.PI/2, 0, 0);
+        porting.position.set(0, 0.01, -0.48);
+        this.weaponModels.sniper.add(porting);
+        
+        // Feed neck (connects hopper to body)
+        const neckGeometry = new this.THREE.CylinderGeometry(0.025, 0.025, 0.07, 12);
+        const neck = new this.THREE.Mesh(neckGeometry, metalMaterial);
+        neck.position.set(0, 0.085, 0.0);
+        this.weaponModels.sniper.add(neck);
+        
+        // Hopper (ammo container/loader)
+        const hopperGeometry = new this.THREE.BoxGeometry(0.15, 0.1, 0.15);
+        const hopper = new this.THREE.Mesh(hopperGeometry, hopperMaterial);
+        hopper.position.set(0, 0.16, 0.0);
+        this.weaponModels.sniper.add(hopper);
+        
+        // Hopper top (sloped)
+        const hopperTopGeometry = new this.THREE.BoxGeometry(0.14, 0.05, 0.14);
+        const hopperTop = new this.THREE.Mesh(hopperTopGeometry, hopperMaterial);
+        hopperTop.position.set(0, 0.235, 0.0);
+        hopperTop.rotation.set(0.2, 0, 0);
+        this.weaponModels.sniper.add(hopperTop);
+        
+        // Add paintballs in the hopper
+        for (let i = 0; i < 8; i++) {
+            const paintballGeometry = new this.THREE.SphereGeometry(0.015, 8, 8);
+            
+            // Random paintball colors
+            const paintballColors = [
+                0xdd0000, // red
+                0x0000dd, // blue
+                0xdddd00, // yellow
+                0x00dd00, // green
+                0xdd00dd  // pink
+            ];
+            
+            const paintballColor = paintballColors[Math.floor(Math.random() * paintballColors.length)];
+            const paintballMatl = new this.THREE.MeshStandardMaterial({ 
+                color: paintballColor,
+                roughness: 0.1,
+                metalness: 0.0
+            });
+            
+            const paintball = new this.THREE.Mesh(paintballGeometry, paintballMatl);
+            paintball.position.set(
+                (Math.random() - 0.5) * 0.1, 
+                0.18 + Math.random() * 0.05, 
+                (Math.random() - 0.5) * 0.1
+            );
+            this.weaponModels.sniper.add(paintball);
+        }
+        
+        // Red dot sight (common on paintball markers)
+        const sightBaseGeometry = new this.THREE.BoxGeometry(0.04, 0.025, 0.08);
+        const sightBase = new this.THREE.Mesh(sightBaseGeometry, metalMaterial);
+        sightBase.position.set(0, 0.07, -0.15);
+        this.weaponModels.sniper.add(sightBase);
+        
+        // Red dot lens
+        const lensGeometry = new this.THREE.CylinderGeometry(0.015, 0.015, 0.01, 12);
         const lensMaterial = new this.THREE.MeshStandardMaterial({ 
-            color: 0x3399ff, 
+            color: 0xff0000, 
+            emissive: 0xff0000,
+            emissiveIntensity: 0.5,
             roughness: 0, 
-            metalness: 0.5,
+            metalness: 0.0,
             transparent: true,
             opacity: 0.7
         });
-        const frontLens = new this.THREE.Mesh(lensGeometry, lensMaterial);
-        frontLens.rotation.set(Math.PI/2, 0, 0);
-        frontLens.position.set(0, 0.06, -0.22);
-        this.weaponModels.sniper.add(frontLens);
-        
-        // Scope lens (back)
-        const backLens = new this.THREE.Mesh(lensGeometry, lensMaterial);
-        backLens.rotation.set(Math.PI/2, 0, 0);
-        backLens.position.set(0, 0.06, 0.02);
-        this.weaponModels.sniper.add(backLens);
-        
-        // Bipod
-        const bipodLegGeometry = new this.THREE.BoxGeometry(0.01, 0.15, 0.01);
-        const bipodMaterial = new this.THREE.MeshStandardMaterial({ color: 0x444444 });
-        
-        // Left leg
-        const leftLeg = new this.THREE.Mesh(bipodLegGeometry, bipodMaterial);
-        leftLeg.position.set(-0.04, -0.08, -0.7);
-        leftLeg.rotation.set(0, 0, Math.PI/6);
-        this.weaponModels.sniper.add(leftLeg);
-        
-        // Right leg
-        const rightLeg = new this.THREE.Mesh(bipodLegGeometry, bipodMaterial);
-        rightLeg.position.set(0.04, -0.08, -0.7);
-        rightLeg.rotation.set(0, 0, -Math.PI/6);
-        this.weaponModels.sniper.add(rightLeg);
+        const lens = new this.THREE.Mesh(lensGeometry, lensMaterial);
+        lens.rotation.set(Math.PI/2, 0, 0);
+        lens.position.set(0, 0.07, -0.18);
+        this.weaponModels.sniper.add(lens);
         
         // Apply weapon configuration settings
         if (this.weaponConfigs.sniper) {
@@ -280,16 +384,16 @@ class WeaponModels {
         // Add userData for collision detection
         this.weaponModels.sniper.userData = {
             isWeapon: true,
-            weaponType: 'sniper'
+            weaponType: 'paintball_rifle'
         };
     }
     
     /**
-     * Creates the paintball gun weapon model
+     * Creates the paintball sniper rifle weapon model
      * @param {THREE.BoxGeometry} sharedGeometry - Shared geometry for optimization
      * @private
      */
-    createPaintballModel(sharedGeometry) {
+    createPaintballSniperModel(sharedGeometry) {
         // Advanced paintball gun materials with improved colors for realism
         const paintballMaterial = new this.THREE.MeshStandardMaterial({ 
             color: 0x009900, // Darker green for more realism
@@ -526,7 +630,7 @@ class WeaponModels {
         // Add userData for collision detection
         this.weaponModels.paintball.userData = {
             isWeapon: true,
-            weaponType: 'paintball'
+            weaponType: 'paintball_sniper'
         };
     }
     
