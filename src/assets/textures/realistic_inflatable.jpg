@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg width="512" height="512" xmlns="http://www.w3.org/2000/svg">
+  <rect width="100%" height="100%" fill="#444444" />
+  <text x="50%" y="50%" font-family="Arial" font-size="24" text-anchor="middle" fill="white">
+    realistic_inflatable
+  </text>
+</svg>

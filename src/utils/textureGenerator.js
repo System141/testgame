@@ -1,8 +1,8 @@
-import * as THREE from '../node_modules/three/build/three.module.js';
+import * as THREE from '/node_modules/three/build/three.module.js';
 
 export default class TextureGenerator {
     generateFloorTexture() {
-        const texture = new THREE.TextureLoader().load('/textures/realistic_arena_floor.jpg');
+        const texture = new THREE.TextureLoader().load('/src/assets/textures/realistic_arena_floor.jpg');
         texture.wrapS = THREE.RepeatWrapping;
         texture.wrapT = THREE.RepeatWrapping;
         texture.repeat.set(10, 10);
@@ -10,7 +10,7 @@ export default class TextureGenerator {
     }
 
     generateWallTexture() {
-        const texture = new THREE.TextureLoader().load('/textures/realistic_wall.jpg');
+        const texture = new THREE.TextureLoader().load('/src/assets/textures/realistic_wall.jpg');
         texture.wrapS = THREE.RepeatWrapping;
         texture.wrapT = THREE.RepeatWrapping;
         texture.repeat.set(10, 10);
@@ -18,7 +18,7 @@ export default class TextureGenerator {
     }
 
     generateBunkerTexture() {
-        const texture = new THREE.TextureLoader().load('/textures/realistic_bunker.jpg');
+        const texture = new THREE.TextureLoader().load('/src/assets/textures/realistic_bunker.jpg');
         texture.wrapS = THREE.RepeatWrapping;
         texture.wrapT = THREE.RepeatWrapping;
         texture.repeat.set(1, 1);
@@ -26,7 +26,7 @@ export default class TextureGenerator {
     }
 
     generateBarrelTexture() {
-        const texture = new THREE.TextureLoader().load('/textures/realistic_barrel.jpg');
+        const texture = new THREE.TextureLoader().load('/src/assets/textures/realistic_barrel.jpg');
         texture.wrapS = THREE.RepeatWrapping;
         texture.wrapT = THREE.RepeatWrapping;
         texture.repeat.set(1, 1);
@@ -34,7 +34,7 @@ export default class TextureGenerator {
     }
 
     generateInflatableTexture() {
-        const texture = new THREE.TextureLoader().load('/textures/realistic_inflatable.jpg');
+        const texture = new THREE.TextureLoader().load('/src/assets/textures/realistic_inflatable.jpg');
         texture.wrapS = THREE.RepeatWrapping;
         texture.wrapT = THREE.RepeatWrapping;
         texture.repeat.set(1, 1);

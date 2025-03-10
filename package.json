@@ -2,11 +2,11 @@
   "name": "testgame",
   "version": "1.0.0",
   "description": "",
-  "main": "main.js",
+  "main": "src/core/main.js",
   "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "npx nodemon server.js"
+    "start": "npx nodemon src/server/server.js"
   },
   "keywords": [],
   "author": "",

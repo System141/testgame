@@ -1,6 +1,6 @@
-import * as THREE from '../node_modules/three/build/three.module.js';
-import { Body, Box, Vec3 } from '../node_modules/cannon-es/dist/cannon-es.js';
-import TextureGenerator from './textureGenerator.js';
+import * as THREE from '/node_modules/three/build/three.module.js';
+import { Body, Box, Vec3 } from '/node_modules/cannon-es/dist/cannon-es.js';
+import TextureGenerator from '/src/utils/textureGenerator.js';
 
 // GameMap.js
 

@@ -3,7 +3,7 @@
  * Handles multiple weapon types, shooting mechanics, and visual effects.
  */
 import * as THREE from '/node_modules/three/build/three.module.js';
-import { WeaponModels } from './textures/weaponModels.js';
+import { WeaponModels } from '/src/weapons/weaponModels.js';
 
 /**
  * Manages all weapon functionality including models, shooting, and effects.
@@ -109,6 +109,80 @@ export default class Weapon {
     
     /**
      * Initializes animation state objects
+     * Updates the weapon selection UI indicators
+     */
+    updateWeaponUI() {
+        // Create or get weapon selection UI
+        let weaponUI = document.getElementById('weapon-selection-ui');
+        if (!weaponUI) {
+            weaponUI = document.createElement('div');
+            weaponUI.id = 'weapon-selection-ui';
+            weaponUI.style.position = 'absolute';
+            weaponUI.style.bottom = '20px';
+            weaponUI.style.right = '20px';
+            weaponUI.style.display = 'flex';
+            weaponUI.style.gap = '10px';
+            weaponUI.style.zIndex = '1000';
+            document.body.appendChild(weaponUI);
+            
+            // Create weapon selection indicators
+            const weapons = ['rifle', 'sniper', 'paintball'];
+            const keys = ['1', '2', '3'];
+            
+            weapons.forEach((weapon, index) => {
+                const indicator = document.createElement('div');
+                indicator.id = `weapon-indicator-${weapon}`;
+                indicator.style.width = '60px';
+                indicator.style.height = '60px';
+                indicator.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+                indicator.style.color = 'white';
+                indicator.style.display = 'flex';
+                indicator.style.flexDirection = 'column';
+                indicator.style.justifyContent = 'center';
+                indicator.style.alignItems = 'center';
+                indicator.style.borderRadius = '5px';
+                indicator.style.padding = '5px';
+                indicator.style.cursor = 'pointer';
+                indicator.style.transition = 'all 0.2s';
+                
+                // Add key indicator
+                const keyEl = document.createElement('div');
+                keyEl.textContent = keys[index];
+                keyEl.style.fontSize = '16px';
+                keyEl.style.fontWeight = 'bold';
+                indicator.appendChild(keyEl);
+                
+                // Add weapon name
+                const nameEl = document.createElement('div');
+                nameEl.textContent = weapon.charAt(0).toUpperCase() + weapon.slice(1);
+                nameEl.style.fontSize = '14px';
+                indicator.appendChild(nameEl);
+                
+                // Add click handler to select this weapon
+                indicator.addEventListener('click', () => {
+                    this.switchToWeapon(weapon);
+                });
+                
+                weaponUI.appendChild(indicator);
+            });
+        }
+        
+        // Update the active weapon indicator
+        document.querySelectorAll('[id^="weapon-indicator-"]').forEach(indicator => {
+            const weaponType = indicator.id.split('-').pop();
+            if (weaponType === this.currentWeapon) {
+                indicator.style.backgroundColor = 'rgba(255, 255, 255, 0.3)';
+                indicator.style.transform = 'scale(1.1)';
+                indicator.style.border = '2px solid white';
+            } else {
+                indicator.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+                indicator.style.transform = 'scale(1)';
+                indicator.style.border = 'none';
+            }
+        });
+    }
+    
+    /**
      * @private
      */
     initAnimationStates() {
@@ -128,7 +202,8 @@ export default class Weapon {
         this.recoilState = {
             active: false,
             startTime: 0,
-            originalPosition: new THREE.Vector3()
+            originalPosition: new THREE.Vector3(),
+            cameraPositionAtRecoilStart: new THREE.Vector3()
         };
         
         // State for weapon switch animation
@@ -136,7 +211,8 @@ export default class Weapon {
             active: false,
             startTime: 0,
             originalPosition: new THREE.Vector3(),
-            originalRotation: new THREE.Euler()
+            originalRotation: new THREE.Euler(),
+            cameraPositionAtSwitchStart: new THREE.Vector3()
         };
     }
     
@@ -241,38 +317,63 @@ export default class Weapon {
     _updateWeaponPositions() {
         if (!this.camera) return;
         
-        // Get camera position and direction
-        const cameraPosition = this.camera.position.clone();
+        // Get camera position and direction - direct reference instead of clone for immediate sync
+        const cameraPosition = this.camera.position;
         const cameraDirection = new THREE.Vector3(0, 0, -1);
         cameraDirection.applyQuaternion(this.camera.quaternion);
-        
-        // Define weapon offsets (position relative to camera)
-        const weaponOffset = {
-            x: 0.3,  // Slightly to the right
-            y: -0.4, // Below center of view
-            z: -0.7  // In front of camera
-        };
         
         // Create a matrix to transform from camera space to world space
         const matrix = new THREE.Matrix4();
         matrix.makeRotationFromQuaternion(this.camera.quaternion);
         
-        // Calculate weapon position in world space by applying offset to camera position
-        const offsetVector = new THREE.Vector3(weaponOffset.x, weaponOffset.y, weaponOffset.z);
-        offsetVector.applyMatrix4(matrix);
-        
-        // Apply position to all weapons
+        // Apply position to all weapons with weapon-specific positioning
         Object.keys(this.weapons).forEach(weaponType => {
-            if (this.weapons[weaponType].model) {
-                // Position the weapon at camera position + offset
-                this.weapons[weaponType].model.position.copy(cameraPosition.add(offsetVector));
-                
-                // Match the rotation of the camera (weapon points where camera looks)
-                this.weapons[weaponType].model.quaternion.copy(this.camera.quaternion);
+            if (!this.weapons[weaponType].model) return;
+            
+            // Define weapon-specific offsets (position relative to camera)
+            let weaponOffset;
+            let scale = 1.0;
+            
+            if (weaponType === 'paintball') {
+                // Paintball gun should be more centered and held realistically
+                weaponOffset = {
+                    x: 0.15,   // More centered horizontally
+                    y: -0.28,  // Raised higher in view
+                    z: -0.55   // Closer to camera for better visibility
+                };
+                // Make paintball gun larger
+                scale = 1.25;
+            } else if (weaponType === 'sniper') {
+                weaponOffset = {
+                    x: 0.25,  // Slightly right
+                    y: -0.38, // Lower in view
+                    z: -0.70  // Further from camera
+                };
+            } else {
+                // Default rifle position
+                weaponOffset = {
+                    x: 0.3,  // Right side
+                    y: -0.4, // Below center
+                    z: -0.7  // Standard distance
+                };
             }
+            
+            // Calculate weapon position in world space by applying offset to camera position
+            const offsetVector = new THREE.Vector3(weaponOffset.x, weaponOffset.y, weaponOffset.z);
+            offsetVector.applyMatrix4(matrix);
+            
+            // Use the actual camera position rather than a clone to maintain direct connection
+            // This prevents any lag between camera and weapon position updates
+            this.weapons[weaponType].model.position.copy(cameraPosition).add(offsetVector);
+            
+            // Match the rotation of the camera (weapon points where camera looks)
+            this.weapons[weaponType].model.quaternion.copy(this.camera.quaternion);
+            
+            // Apply weapon-specific scale
+            this.weapons[weaponType].model.scale.set(scale, scale, scale);
         });
         
-        // Also update weapon light position
+        // Also update weapon light position - direct reference for immediate update
         const weaponLight = this.scene.getObjectByName('weaponLight');
         if (weaponLight) {
             weaponLight.position.copy(cameraPosition);
@@ -670,19 +771,29 @@ export default class Weapon {
     }
 
     handleWeaponSwitch(event) {
+        // Map numeric keys to specific weapons
         if (event.key === '1') {
-            this.switchWeaponMode();
+            this.switchToWeapon('rifle');
+        } else if (event.key === '2') {
+            this.switchToWeapon('sniper');
+        } else if (event.key === '3') {
+            this.switchToWeapon('paintball');
         }
     }
 
-    switchWeaponMode() {
-        // Define the weapon modes in sequence: rifle → sniper → paintball
-        const modes = ['rifle', 'sniper', 'paintball'];
+    /**
+     * Switch to a specific weapon
+     * @param {string} weaponType - Type of weapon to switch to ('rifle', 'sniper', or 'paintball')
+     */
+    switchToWeapon(weaponType) {
+        // Validate weapon type
+        if (!this.weapons[weaponType]) {
+            console.error(`Invalid weapon type: ${weaponType}`);
+            return;
+        }
         
-        // Get current index and calculate next mode
-        const currentIndex = modes.indexOf(this.currentWeapon);
-        const nextIndex = (currentIndex + 1) % modes.length;
-        const nextWeapon = modes[nextIndex];
+        // Don't switch if already using this weapon
+        if (this.currentWeapon === weaponType) return;
         
         // If player is reloading or in weapon switch animation, cancel it
         this.reloadState.active = false;
@@ -694,16 +805,24 @@ export default class Weapon {
         });
 
         // Show selected weapon
-        this.weapons[nextWeapon].model.visible = true;
-        this.currentWeapon = nextWeapon;
+        this.weapons[weaponType].model.visible = true;
+        this.currentWeapon = weaponType;
         
         // Display the current mode to the player
-        this.showWeaponModeMessage(nextWeapon);
+        this.showWeaponModeMessage(weaponType);
+        
+        // Update weapon UI
+        this.updateWeaponUI();
         
         // Add a small weapon switch animation
-        const weaponModel = this.weapons[nextWeapon].model;
+        const weaponModel = this.weapons[weaponType].model;
         this.switchState.active = true;
         this.switchState.startTime = Date.now();
+        
+        // Save the camera position at the start of the switch animation
+        this.switchState.cameraPositionAtSwitchStart = this.camera.position.clone();
+        
+        // Save original position and rotation relative to the camera
         this.switchState.originalPosition = weaponModel.position.clone();
         this.switchState.originalRotation = weaponModel.rotation.clone();
     }
@@ -789,6 +908,10 @@ export default class Weapon {
         
         this.recoilState.active = true;
         this.recoilState.startTime = Date.now();
+        
+        // Instead of saving the absolute position, save the relative offset from camera
+        // This ensures the weapon stays attached to camera during movement
+        this.recoilState.cameraPositionAtRecoilStart = this.camera.position.clone();
         this.recoilState.originalPosition.copy(weaponModel.position);
     }
     
@@ -868,10 +991,32 @@ export default class Weapon {
         if (this.reloadState.active) return;
         
         const weaponModel = this.weapons[this.currentWeapon].model;
-        this.reloadState.active = true;
-        this.reloadState.startTime = Date.now();
-        this.reloadState.rotationStart.copy(weaponModel.rotation);
-        this.reloadState.positionStart.copy(weaponModel.position);
+        if (!weaponModel) return;
+        
+        // Set weapon-specific reload durations
+        let reloadDuration = 1500; // Default reload duration
+        
+        if (this.currentWeapon === 'paintball') {
+            // Paintball reloads are typically just checking/adjusting the hopper,
+            // which can be shorter than magazine changes for other weapons
+            reloadDuration = 1200;
+            
+            // Play a sound effect if sound system exists
+            if (this.audioSystem && this.audioSystem.playSound) {
+                this.audioSystem.playSound('hopperShake', 0.5);
+            }
+        } else if (this.currentWeapon === 'sniper') {
+            // Sniper rifles might take longer to reload
+            reloadDuration = 2000;
+        }
+        
+        this.reloadState = {
+            active: true,
+            startTime: Date.now(),
+            duration: reloadDuration,
+            rotationStart: weaponModel.rotation.clone(),
+            positionStart: weaponModel.position.clone()
+        };
     }
 
     updateReload() {
@@ -881,18 +1026,52 @@ export default class Weapon {
         const elapsed = Date.now() - this.reloadState.startTime;
         const progress = Math.min(elapsed / this.reloadState.duration, 1);
 
-        // Reload animation
-        if (progress < 0.5) {
-            // Rotate weapon down and to the side
-            weaponModel.rotation.x = this.reloadState.rotationStart.x + Math.PI * 0.25 * progress * 2;
-            weaponModel.rotation.z = this.reloadState.rotationStart.z - Math.PI * 0.15 * progress * 2;
-            weaponModel.position.y = this.reloadState.positionStart.y - 0.2 * progress * 2;
-        } else {
-            // Return weapon to original position
-            const returnProgress = (progress - 0.5) * 2;
-            weaponModel.rotation.x = this.reloadState.rotationStart.x + Math.PI * 0.25 * (1 - returnProgress);
-            weaponModel.rotation.z = this.reloadState.rotationStart.z - Math.PI * 0.15 * (1 - returnProgress);
-            weaponModel.position.y = this.reloadState.positionStart.y - 0.2 * (1 - returnProgress);
+        // Weapon-specific reload animations
+        if (this.currentWeapon === 'paintball') {
+            // Paintball gun reload animation - focusing on hopper manipulation
+            if (progress < 0.3) {
+                // First phase: Angle the gun and look at hopper
+                weaponModel.rotation.x = this.reloadState.rotationStart.x + Math.PI * 0.15 * (progress / 0.3);
+                weaponModel.rotation.z = this.reloadState.rotationStart.z + Math.PI * 0.08 * (progress / 0.3);
+            } 
+            else if (progress < 0.7) {
+                // Second phase: Tap/adjust the hopper (common in paintball to ensure proper feed)
+                // Keep the tilt
+                weaponModel.rotation.x = this.reloadState.rotationStart.x + Math.PI * 0.15;
+                weaponModel.rotation.z = this.reloadState.rotationStart.z + Math.PI * 0.08;
+                
+                // Add a tapping/shaking motion to the hopper
+                const tapPhase = (progress - 0.3) / 0.4; // Normalize to 0-1 for this phase
+                // Quick up-down motion for tapping
+                weaponModel.position.y = this.reloadState.positionStart.y + 
+                                    0.015 * Math.sin(tapPhase * Math.PI * 8);
+                // Slight side to side shake
+                weaponModel.rotation.y = this.reloadState.rotationStart.y + 
+                                    0.02 * Math.sin(tapPhase * Math.PI * 6);
+            } 
+            else {
+                // Final phase: Return to original position
+                const returnPhase = (progress - 0.7) / 0.3; // Normalize to 0-1 for return
+                weaponModel.rotation.x = this.reloadState.rotationStart.x + Math.PI * 0.15 * (1 - returnPhase);
+                weaponModel.rotation.z = this.reloadState.rotationStart.z + Math.PI * 0.08 * (1 - returnPhase);
+                weaponModel.rotation.y = this.reloadState.rotationStart.y + (0.02 * Math.sin((1-returnPhase) * Math.PI * 6) * (1-returnPhase));
+                weaponModel.position.y = this.reloadState.positionStart.y;
+            }
+        } 
+        else {
+            // Standard reload animation for other weapons
+            if (progress < 0.5) {
+                // Rotate weapon down and to the side
+                weaponModel.rotation.x = this.reloadState.rotationStart.x + Math.PI * 0.25 * progress * 2;
+                weaponModel.rotation.z = this.reloadState.rotationStart.z - Math.PI * 0.15 * progress * 2;
+                weaponModel.position.y = this.reloadState.positionStart.y - 0.2 * progress * 2;
+            } else {
+                // Return weapon to original position
+                const returnProgress = (progress - 0.5) * 2;
+                weaponModel.rotation.x = this.reloadState.rotationStart.x + Math.PI * 0.25 * (1 - returnProgress);
+                weaponModel.rotation.z = this.reloadState.rotationStart.z - Math.PI * 0.15 * (1 - returnProgress);
+                weaponModel.position.y = this.reloadState.positionStart.y - 0.2 * (1 - returnProgress);
+            }
         }
 
         if (progress >= 1) {
@@ -907,26 +1086,34 @@ export default class Weapon {
      * @param {string} mode - The current weapon mode
      * @private
      */
+    /**
+     * Displays a message about the currently selected weapon
+     * @param {string} mode - The weapon mode to display
+     */
     showWeaponModeMessage(mode) {
         // Get mode name in a user-friendly format
-        let modeName, modeColor;
+        let modeName, modeColor, keyNumber;
         
         switch(mode) {
             case 'rifle':
                 modeName = "ASSAULT RIFLE";
                 modeColor = "#ff7700";
+                keyNumber = "1";
                 break;
             case 'sniper':
                 modeName = "SNIPER RIFLE";
                 modeColor = "#00aaff";
+                keyNumber = "2";
                 break;
             case 'paintball':
                 modeName = "PAINTBALL GUN";
                 modeColor = "#00ff00";
+                keyNumber = "3";
                 break;
             default:
                 modeName = mode.toUpperCase();
                 modeColor = "#ffffff";
+                keyNumber = "";
         }
         
         // Create or update message element
@@ -936,8 +1123,9 @@ export default class Weapon {
             msgElement = document.createElement('div');
             msgElement.id = 'weapon-mode-message';
             msgElement.style.position = 'fixed';
-            msgElement.style.bottom = '20px';
-            msgElement.style.right = '20px';
+            msgElement.style.top = '60px'; // Moved to top to avoid overlapping with weapon selection UI
+            msgElement.style.left = '50%';
+            msgElement.style.transform = 'translateX(-50%)';
             msgElement.style.padding = '10px 15px';
             msgElement.style.background = 'rgba(0, 0, 0, 0.7)';
             msgElement.style.color = '#ffffff';
@@ -950,8 +1138,12 @@ export default class Weapon {
             document.body.appendChild(msgElement);
         }
         
-        // Set message content
-        msgElement.innerHTML = `WEAPON MODE: <span style="color:${modeColor}">${modeName}</span>`;
+        // Set message content with key binding
+        if (keyNumber) {
+            msgElement.innerHTML = `<span style="color:${modeColor}">${modeName}</span> <span style="color:#aaaaaa">(Press ${keyNumber})</span>`;
+        } else {
+            msgElement.innerHTML = `<span style="color:${modeColor}">${modeName}</span>`;
+        }
         msgElement.style.opacity = '1';
         
         // Fade out after 2 seconds
@@ -2186,6 +2378,7 @@ export default class Weapon {
     update(deltaTime = 1/60) {
         try {
             // Update weapon positions to follow camera
+            // Call this method first to prioritize weapon positioning
             this._updateWeaponPositions();
             
             // Update bullet positions and check collisions
@@ -2193,6 +2386,12 @@ export default class Weapon {
             
             // Update weapon animations
             this.updateWeaponAnimations(deltaTime);
+            
+            // Force an additional weapon position update at the end of the frame
+            // This ensures weapons stay synced with the camera even during fast movements
+            requestAnimationFrame(() => {
+                this._updateWeaponPositions();
+            });
             
         } catch (error) {
             console.error('Error in weapon update:', error);
@@ -2294,6 +2493,10 @@ export default class Weapon {
 
             const weaponModel = this.weapons[this.currentWeapon].model;
             if (weaponModel) {
+                // First update the basic weapon position to follow the camera
+                // This ensures the weapon stays attached to the camera during movement
+                this._updateWeaponPositions();
+                
                 // Different recoil based on weapon type
                 let recoilAmount, recoilLift;
                 
@@ -2303,27 +2506,56 @@ export default class Weapon {
                         recoilLift = 0.04;  // Significant upward recoil
                         break;
                     case 'paintball':
-                        recoilAmount = 0.03; // Light backward recoil
-                        recoilLift = 0.01;  // Light upward recoil
+                        // Paintball guns have minimal recoil but have a distinctive cycling action
+                        recoilAmount = 0.015; // Very light backward force
+                        recoilLift = 0.005;  // Minimal vertical movement
                         break;
                     default: // rifle
                         recoilAmount = 0.05; // Medium backward recoil
                         recoilLift = 0.02;  // Medium upward recoil
                 }
                 
-                // Apply smooth recoil using sin curve for natural motion
-                weaponModel.position.copy(this.recoilState.originalPosition);
-                weaponModel.position.z -= recoilAmount * Math.sin(progress * Math.PI);
-                weaponModel.position.y += recoilLift * Math.sin(progress * Math.PI);
+                // Get the current base position after weapon has been updated to follow camera
+                const currentBasePosition = weaponModel.position.clone();
                 
-                // Add slight rotation for more realistic recoil
-                weaponModel.rotation.x = -recoilLift * 2 * Math.sin(progress * Math.PI);
+                // Calculate recoil offsets without directly modifying the position
+                // This allows us to apply recoil on top of camera movement
+                const recoilOffset = new THREE.Vector3();
+                const recoilRotation = new THREE.Euler();
+                
+                if (this.currentWeapon === 'paintball') {
+                    // Paintball guns have a distinctive cycling bolt/striker action when firing
+                    recoilOffset.z = -recoilAmount * Math.sin(progress * Math.PI);
+                    
+                    // Add subtle vibration to simulate air/CO2 release
+                    recoilOffset.x = 0.002 * Math.sin(progress * Math.PI * 6); // Rapid side-to-side vibration
+                    recoilOffset.y = 0.001 * Math.sin(progress * Math.PI * 4);
+                    
+                    // Simulate the mechanical movement of internal parts
+                    recoilRotation.z = 0.003 * Math.sin(progress * Math.PI * 3); // Slight twist
+                    recoilRotation.x = -0.002 * Math.sin(progress * Math.PI * 2); // Minimal tilt
+                } else {
+                    // Standard recoil for other weapons
+                    recoilOffset.z = -recoilAmount * Math.sin(progress * Math.PI);
+                    recoilOffset.y = recoilLift * Math.sin(progress * Math.PI);
+                    
+                    // Add slight rotation for more realistic recoil
+                    recoilRotation.x = -recoilLift * 2 * Math.sin(progress * Math.PI);
+                }
+                
+                // Apply offsets to current position (after camera update)
+                weaponModel.position.add(recoilOffset);
+                
+                // Apply rotations
+                weaponModel.rotation.x += recoilRotation.x;
+                weaponModel.rotation.z += recoilRotation.z;
 
                 // Reset when animation completes
                 if (progress >= 1) {
                     this.recoilState.active = false;
-                    weaponModel.position.copy(this.recoilState.originalPosition);
+                    // No need to reset position as it's now continuously updated
                     weaponModel.rotation.x = 0;
+                    weaponModel.rotation.z = 0;
                 }
             }
         }
@@ -2335,26 +2567,42 @@ export default class Weapon {
             
             const weaponModel = this.weapons[this.currentWeapon].model;
             if (weaponModel) {
+                // First update the weapon position to follow the camera
+                // This ensures the weapon stays attached to the camera during movement
+                this._updateWeaponPositions();
+                
+                // Get the current position after being updated to follow camera
+                const currentBasePosition = weaponModel.position.clone();
+                const currentRotation = weaponModel.rotation.clone();
+                
+                // Calculate animation offsets
+                let posYOffset = 0;
+                let posZOffset = 0;
+                let rotXOffset = 0;
+                
                 // More dynamic weapon switch animation
                 if (progress < 1) {
                     // First half - weapon moving down and rotating out
                     if (progress < 0.5) {
                         const p = progress * 2; // Rescale 0-0.5 to 0-1
-                        weaponModel.position.y = this.switchState.originalPosition.y - 0.2 * p;
-                        weaponModel.rotation.x = this.switchState.originalRotation.x + 0.3 * p;
-                        weaponModel.position.z = this.switchState.originalPosition.z + 0.1 * p;
+                        posYOffset = -0.2 * p;
+                        rotXOffset = 0.3 * p;
+                        posZOffset = 0.1 * p;
                     } 
                     // Second half - weapon moving back up and rotating in
                     else {
                         const p = (progress - 0.5) * 2; // Rescale 0.5-1 to 0-1
-                        weaponModel.position.y = this.switchState.originalPosition.y - 0.2 * (1 - p);
-                        weaponModel.rotation.x = this.switchState.originalRotation.x + 0.3 * (1 - p);
-                        weaponModel.position.z = this.switchState.originalPosition.z + 0.1 * (1 - p);
+                        posYOffset = -0.2 * (1 - p);
+                        rotXOffset = 0.3 * (1 - p);
+                        posZOffset = 0.1 * (1 - p);
                     }
+                    
+                    // Apply the animation offsets on top of the current position
+                    weaponModel.position.y += posYOffset;
+                    weaponModel.position.z += posZOffset;
+                    weaponModel.rotation.x += rotXOffset;
                 } else {
-                    // Animation complete - reset to original position
-                    weaponModel.position.copy(this.switchState.originalPosition);
-                    weaponModel.rotation.copy(this.switchState.originalRotation);
+                    // Animation complete - no need to reset position since it's continuously updated
                     this.switchState.active = false;
                 }
             }

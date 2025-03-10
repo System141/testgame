@@ -8,13 +8,13 @@ import * as THREE from '/node_modules/three/build/three.module.js';
 import { World, Body, Box, Vec3 } from '/node_modules/cannon-es/dist/cannon-es.js';
 
 // Import game components
-import PlayerControls from './playerControls.js';
-import GameMap from './map.js';
-import SkySphere from './skyboxGenerator.js'; // Fixed import name to match file
-import GameState from './gameState.js';
-import Weapon from './weapon.js';
-import Enemy from './enemy.js';
-import TextureGenerator from './textureGenerator.js';
+import PlayerControls from '/src/entities/playerControls.js';
+import GameMap from '/src/world/map.js';
+import SkySphere from '/src/world/skyboxGenerator.js';
+import GameState from '/src/core/gameState.js';
+import Weapon from '/src/weapons/weapon.js';
+import Enemy from '/src/entities/enemy.js';
+import TextureGenerator from '/src/utils/textureGenerator.js';
 
 // Game variables
 let camera, scene, renderer, controls, gameMap, skySphere, gameState, weapon, physicsWorld;
