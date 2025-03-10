@@ -181,6 +181,39 @@ export default class Weapon {
             this.weapons.sniper.model = models.sniper;
             this.weapons.paintball.model = models.paintball;
             
+            // NEW APPROACH: Add models to the scene instead of the camera
+            // This ensures they're rendered properly
+            console.log('Adding weapon models to scene...');
+            this.scene.add(this.weapons.rifle.model);
+            this.scene.add(this.weapons.sniper.model);
+            this.scene.add(this.weapons.paintball.model);
+            
+            // Set models to be very bright so they're easier to see for debugging
+            this.weapons.rifle.model.traverse(child => {
+                if (child.isMesh && child.material) {
+                    child.material.emissive = new THREE.Color(0x331111);
+                }
+            });
+            
+            // Set initial positions (will be updated in the update method)
+            this._updateWeaponPositions();
+            
+            // Add a light to illuminate the weapons
+            const weaponLight = new THREE.PointLight(0xffffff, 1, 2);
+            weaponLight.name = 'weaponLight';
+            this.scene.add(weaponLight);
+            
+            console.log('Weapon setup complete. Models:', 
+                'rifle:', this.weapons.rifle.model,
+                'sniper:', this.weapons.sniper.model,
+                'paintball:', this.weapons.paintball.model
+            );
+            
+            // Ensure models have material
+            this._verifyModelMaterials(this.weapons.rifle.model);
+            this._verifyModelMaterials(this.weapons.sniper.model);
+            this._verifyModelMaterials(this.weapons.paintball.model);
+            
             // Initially show rifle and hide others
             this.setInitialWeaponVisibility();
             
@@ -195,6 +228,88 @@ export default class Weapon {
     }
     
     // Weapon model creation methods have been moved to the textures/weaponModels.js file
+    
+    /**
+     * Helper method to verify model materials are set up correctly
+     * @param {THREE.Object3D} model - The model to check
+     * @private
+     */
+    /**
+     * Updates the position of weapon models to follow the camera
+     * @private
+     */
+    _updateWeaponPositions() {
+        if (!this.camera) return;
+        
+        // Get camera position and direction
+        const cameraPosition = this.camera.position.clone();
+        const cameraDirection = new THREE.Vector3(0, 0, -1);
+        cameraDirection.applyQuaternion(this.camera.quaternion);
+        
+        // Define weapon offsets (position relative to camera)
+        const weaponOffset = {
+            x: 0.3,  // Slightly to the right
+            y: -0.4, // Below center of view
+            z: -0.7  // In front of camera
+        };
+        
+        // Create a matrix to transform from camera space to world space
+        const matrix = new THREE.Matrix4();
+        matrix.makeRotationFromQuaternion(this.camera.quaternion);
+        
+        // Calculate weapon position in world space by applying offset to camera position
+        const offsetVector = new THREE.Vector3(weaponOffset.x, weaponOffset.y, weaponOffset.z);
+        offsetVector.applyMatrix4(matrix);
+        
+        // Apply position to all weapons
+        Object.keys(this.weapons).forEach(weaponType => {
+            if (this.weapons[weaponType].model) {
+                // Position the weapon at camera position + offset
+                this.weapons[weaponType].model.position.copy(cameraPosition.add(offsetVector));
+                
+                // Match the rotation of the camera (weapon points where camera looks)
+                this.weapons[weaponType].model.quaternion.copy(this.camera.quaternion);
+            }
+        });
+        
+        // Also update weapon light position
+        const weaponLight = this.scene.getObjectByName('weaponLight');
+        if (weaponLight) {
+            weaponLight.position.copy(cameraPosition);
+        }
+    }
+    
+    _verifyModelMaterials(model) {
+        if (!model) {
+            console.warn('Cannot verify materials for undefined model');
+            return;
+        }
+        
+        // Traverse through all children of the model
+        model.traverse(child => {
+            // Check if the child is a mesh with material
+            if (child.isMesh) {
+                console.log('Found mesh in weapon model:', child.name, child);
+                
+                // Ensure material exists
+                if (!child.material) {
+                    console.warn('Mesh is missing material:', child.name);
+                    child.material = new THREE.MeshBasicMaterial({ color: 0xff0000 }); // Add default red material
+                }
+                
+                // Force material to be visible
+                child.material.needsUpdate = true;
+                child.visible = true;
+                
+                // Add userData for debugging
+                child.userData.isWeaponPart = true;
+            }
+        });
+        
+        // Set the model to be visible
+        model.visible = true;
+        console.log('Model visibility set to:', model.visible);
+    }
     
     /**
      * Sets the initial visibility of weapons
@@ -1879,15 +1994,16 @@ export default class Weapon {
             // Draw the puddle outline
             for (let i = 1; i <= puddlePoints; i++) {
                 const puddleAngle = i * puddleAngleStep;
-                const puddleRadius = puddleRadius * (1 - puddleIrregularity/2 + Math.random() * puddleIrregularity);
-                const puddleX = centerX + Math.cos(puddleAngle) * puddleRadius;
-                const puddleY = centerY + Math.sin(puddleAngle) * puddleRadius;
+                // Changed variable name to avoid shadowing the outer puddleRadius
+                const currentPuddleRadius = puddleRadius * (1 - puddleIrregularity/2 + Math.random() * puddleIrregularity);
+                const puddleX = centerX + Math.cos(puddleAngle) * currentPuddleRadius;
+                const puddleY = centerY + Math.sin(puddleAngle) * currentPuddleRadius;
                 
                 const prevAngle = (i - 1) * puddleAngleStep;
-                const cp1x = centerX + Math.cos(prevAngle + puddleAngleStep/3) * puddleRadius * 1.1;
-                const cp1y = centerY + Math.sin(prevAngle + puddleAngleStep/3) * puddleRadius * 1.1;
-                const cp2x = centerX + Math.cos(puddleAngle - puddleAngleStep/3) * puddleRadius * 1.1;
-                const cp2y = centerY + Math.sin(puddleAngle - puddleAngleStep/3) * puddleRadius * 1.1;
+                const cp1x = centerX + Math.cos(prevAngle + puddleAngleStep/3) * currentPuddleRadius * 1.1;
+                const cp1y = centerY + Math.sin(prevAngle + puddleAngleStep/3) * currentPuddleRadius * 1.1;
+                const cp2x = centerX + Math.cos(puddleAngle - puddleAngleStep/3) * currentPuddleRadius * 1.1;
+                const cp2y = centerY + Math.sin(puddleAngle - puddleAngleStep/3) * currentPuddleRadius * 1.1;
                 
                 context.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, puddleX, puddleY);
             }
@@ -2069,6 +2185,9 @@ export default class Weapon {
      */
     update(deltaTime = 1/60) {
         try {
+            // Update weapon positions to follow camera
+            this._updateWeaponPositions();
+            
             // Update bullet positions and check collisions
             this.updateBullets(deltaTime);
             

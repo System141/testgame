@@ -36,6 +36,8 @@ class WeaponModels {
             this.weaponModels.sniper.name = 'sniper';
             this.weaponModels.paintball.name = 'paintball';
             
+            // Models will be added to the camera in the Weapon class
+            
             return this.weaponModels;
         } catch (error) {
             console.error('Error creating weapon models:', error);
@@ -49,11 +51,12 @@ class WeaponModels {
      * @private
      */
     createRifleModel(sharedGeometry) {
-        // Create enhanced rifle materials
+        // Create enhanced rifle materials with high visibility for debugging
         const rifleMaterial = new this.THREE.MeshStandardMaterial({ 
-            color: 0x444444,
+            color: 0xFF5533, // Bright orange for visibility
             roughness: 0.7,
-            metalness: 0.4
+            metalness: 0.4,
+            emissive: 0x441111 // Add slight emissive glow
         });
         
         // Materials for different parts
