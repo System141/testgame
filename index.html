@@ -35,14 +35,58 @@
       background: #ff3333;
       transition: width 0.3s;
     }
-    #ammo-counter {
+    #ammo-container {
       position: absolute;
       bottom: 30px;
       right: 30px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+    }
+    #ammo-counter {
       color: white;
-      font-size: 24px;
+      font-size: 28px;
       font-weight: bold;
       text-shadow: 2px 2px 2px rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+    }
+    #ammo-bar {
+      width: 160px;
+      height: 10px;
+      background: rgba(0, 0, 0, 0.5);
+      border: 1px solid #fff;
+      margin-top: 5px;
+      overflow: hidden;
+    }
+    #ammo-fill {
+      height: 100%;
+      background: #ffcc00;
+      transition: width 0.3s;
+    }
+    #weapon-name {
+      color: #ffcc00;
+      font-size: 16px;
+      margin-bottom: 5px;
+      text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.5);
+    }
+    .reloading #ammo-fill {
+      background: #3399ff !important;
+      animation: pulse 1s infinite;
+    }
+    .reload-dots {
+      animation: dots 1.5s infinite;
+    }
+    @keyframes pulse {
+      0% { opacity: 0.5; }
+      50% { opacity: 1; }
+      100% { opacity: 0.5; }
+    }
+    @keyframes dots {
+      0% { content: '.'; }
+      33% { content: '..'; }
+      66% { content: '...'; }
+      100% { content: '.'; }
     }
     #score {
       position: absolute;
@@ -87,7 +131,11 @@
 <body>
   <div id="ui-container">
     <div id="health-bar"><div id="health-fill"></div></div>
-    <div id="ammo-counter">30 / 90</div>
+    <div id="ammo-container">
+      <div id="weapon-name">Paintball Pistol</div>
+      <div id="ammo-counter">30 / 90</div>
+      <div id="ammo-bar"><div id="ammo-fill" style="width: 100%"></div></div>
+    </div>
     <div id="score">Score: 0</div>
     <div id="crosshair"></div>
   </div>

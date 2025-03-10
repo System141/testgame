@@ -89,20 +89,6 @@ export default class Weapon {
                 currentAmmo: 100,
                 reloadTime: 2000,
                 weaponType: 'paintball_rifle'
-            },
-            paintball: {
-                model: null,
-                bulletSpeed: 2.5,  // Faster for sniper
-                damage: 40,  // More damage for sniper
-                shootingDelay: 800,  // Slower but more powerful
-                bulletSize: 0.09,
-                bulletColor: 0x0000ff,  // Blue paintballs for sniper
-                modelScale: { x: 0.1, y: 0.1, z: 0.5 },
-                position: { x: 0.3, y: -0.2, z: -0.5 },
-                maxAmmo: 20,
-                currentAmmo: 20,
-                reloadTime: 1800,
-                weaponType: 'splatter'
             }
         };
     }
@@ -126,9 +112,9 @@ export default class Weapon {
             document.body.appendChild(weaponUI);
             
             // Create weapon selection indicators
-            const weapons = ['rifle', 'sniper', 'paintball'];
-            const weaponLabels = ['Pistol', 'Rifle', 'Sniper'];
-            const keys = ['1', '2', '3'];
+            const weapons = ['rifle', 'sniper'];
+            const weaponLabels = ['Pistol', 'Rifle'];
+            const keys = ['1', '2'];
             
             weapons.forEach((weapon, index) => {
                 const indicator = document.createElement('div');
@@ -257,14 +243,12 @@ export default class Weapon {
             // Assign models to our weapon properties
             this.weapons.rifle.model = models.rifle;
             this.weapons.sniper.model = models.sniper;
-            this.weapons.paintball.model = models.paintball;
             
             // NEW APPROACH: Add models to the scene instead of the camera
             // This ensures they're rendered properly
             console.log('Adding weapon models to scene...');
             this.scene.add(this.weapons.rifle.model);
             this.scene.add(this.weapons.sniper.model);
-            this.scene.add(this.weapons.paintball.model);
             
             // Set models to be very bright so they're easier to see for debugging
             this.weapons.rifle.model.traverse(child => {
@@ -283,14 +267,12 @@ export default class Weapon {
             
             console.log('Weapon setup complete. Models:', 
                 'rifle:', this.weapons.rifle.model,
-                'sniper:', this.weapons.sniper.model,
-                'paintball:', this.weapons.paintball.model
+                'sniper:', this.weapons.sniper.model
             );
             
             // Ensure models have material
             this._verifyModelMaterials(this.weapons.rifle.model);
             this._verifyModelMaterials(this.weapons.sniper.model);
-            this._verifyModelMaterials(this.weapons.paintball.model);
             
             // Initially show rifle and hide others
             this.setInitialWeaponVisibility();
@@ -298,7 +280,6 @@ export default class Weapon {
             // Add weapon names for debugging
             this.weapons.rifle.model.name = 'paintball_pistol';
             this.weapons.sniper.model.name = 'paintball_rifle';
-            this.weapons.paintball.model.name = 'paintball_sniper';
             
         } catch (error) {
             console.error('Error creating weapon models:', error);
@@ -336,16 +317,7 @@ export default class Weapon {
             let weaponOffset;
             let scale = 1.0;
             
-            if (weaponType === 'paintball') {
-                // Paintball gun should be more centered and held realistically
-                weaponOffset = {
-                    x: 0.15,   // More centered horizontally
-                    y: -0.28,  // Raised higher in view
-                    z: -0.55   // Closer to camera for better visibility
-                };
-                // Make paintball gun larger
-                scale = 1.25;
-            } else if (weaponType === 'sniper') {
+            if (weaponType === 'sniper') {
                 weaponOffset = {
                     x: 0.25,  // Slightly right
                     y: -0.38, // Lower in view
@@ -595,8 +567,10 @@ export default class Weapon {
 
     handleMouseDown(event) {
         if (event.button === 0) { // Left click
+            // Set auto-firing flag to enable continuous firing
+            this.autoFiring = true;
             this.shoot(event);
-        } else if (event.button === 2 && (this.currentWeapon === 'sniper' || this.currentWeapon === 'paintball')) { // Right click for scope - sniper and paintball sniper
+        } else if (event.button === 2 && this.currentWeapon === 'sniper') { // Right click for scope - sniper
             this.toggleScope(true);
         }
     }
@@ -615,8 +589,8 @@ export default class Weapon {
      */
     toggleScope(scoped) {
         try {
-            // Only continue if current weapon is a sniper rifle or paintball sniper
-            if (this.currentWeapon !== 'sniper' && this.currentWeapon !== 'paintball') {
+            // Only continue if current weapon is a sniper rifle
+            if (this.currentWeapon !== 'sniper') {
                 console.log('Scope toggle only available for sniper rifles');
                 return;
             }
@@ -843,7 +817,8 @@ export default class Weapon {
      */
     shoot(event) {
         try {
-            // If event is provided, check if it's left click and start auto-firing
+            // Only set autoFiring flag when mouse event is present
+            // This lets us call shoot() without resetting autoFiring during update
             if (event) {
                 if (event.button !== 0) return;
                 this.autoFiring = true;
@@ -2405,6 +2380,16 @@ export default class Weapon {
             // Call this method first to prioritize weapon positioning
             this._updateWeaponPositions();
             
+            // Auto-firing check - continue shooting if button is held down
+            if (this.autoFiring) {
+                // Only auto-fire for the paintball rifle (labeled as 'sniper') which has rapid-fire capability
+                if (this.currentWeapon === 'sniper') {
+                    // Call shoot without an event to continue auto-firing
+                    // This avoids resetting the autoFiring flag inside shoot()
+                    this.shoot();
+                }
+            }
+            
             // Update bullet positions and check collisions
             this.updateBullets(deltaTime);
             
@@ -2526,15 +2511,12 @@ export default class Weapon {
                 
                 switch (this.currentWeapon) {
                     case 'sniper':
-                        recoilAmount = 0.08; // Strong backward recoil
-                        recoilLift = 0.04;  // Significant upward recoil
+                        // Sniper here refers to our paintball rifle with assault rifle functionality
+                        // Lighter recoil but happens frequently during auto-fire
+                        recoilAmount = 0.04; // Medium backward recoil
+                        recoilLift = 0.02;   // Light upward recoil (assault rifle pattern)
                         break;
-                    case 'paintball':
-                        // Paintball guns have minimal recoil but have a distinctive cycling action
-                        recoilAmount = 0.015; // Very light backward force
-                        recoilLift = 0.005;  // Minimal vertical movement
-                        break;
-                    default: // rifle
+                    default: // rifle (paintball pistol)
                         recoilAmount = 0.05; // Medium backward recoil
                         recoilLift = 0.02;  // Medium upward recoil
                 }

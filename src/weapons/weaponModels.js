@@ -29,12 +29,10 @@ class WeaponModels {
             // Create all paintball-themed weapon models
             this.createPaintballPistolModel(sharedBoxGeometry);
             this.createPaintballRifleModel(sharedBoxGeometry);
-            this.createPaintballSniperModel(sharedBoxGeometry);
             
             // Add weapon names for debugging
             this.weaponModels.rifle.name = 'paintball_pistol';
             this.weaponModels.sniper.name = 'paintball_rifle';
-            this.weaponModels.paintball.name = 'paintball_sniper';
             
             // Models will be added to the camera in the Weapon class
             
