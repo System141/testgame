@@ -104,8 +104,8 @@ export default class Weapon {
             weaponUI = document.createElement('div');
             weaponUI.id = 'weapon-selection-ui';
             weaponUI.style.position = 'absolute';
-            weaponUI.style.bottom = '20px';
-            weaponUI.style.right = '20px';
+            weaponUI.style.bottom = '120px'; // Moved up to avoid overlap with ammo counter
+            weaponUI.style.right = '30px';
             weaponUI.style.display = 'flex';
             weaponUI.style.gap = '10px';
             weaponUI.style.zIndex = '1000';
@@ -1009,6 +1009,18 @@ export default class Weapon {
             rotationStart: weaponModel.rotation.clone(),
             positionStart: weaponModel.position.clone()
         };
+        
+        // Update UI to show reloading state
+        const weaponUI = document.getElementById('ammo-container');
+        if (weaponUI) {
+            weaponUI.classList.add('reloading');
+            
+            // Update weapon name to show reloading
+            const weaponName = document.getElementById('weapon-name');
+            if (weaponName) {
+                weaponName.innerHTML = 'RELOADING<span class="reload-dots">...</span>';
+            }
+        }
     }
 
     updateReload() {
@@ -1070,6 +1082,51 @@ export default class Weapon {
             this.reloadState.active = false;
             weaponModel.rotation.copy(this.reloadState.rotationStart);
             weaponModel.position.copy(this.reloadState.positionStart);
+            
+            // Fully reload the weapon from reserve ammo
+            const currentWeaponProps = this.weapons[this.currentWeapon];
+            
+            // Calculate how much ammo is needed for a full reload
+            const ammoNeeded = currentWeaponProps.maxAmmo - currentWeaponProps.currentAmmo;
+            
+            if (ammoNeeded > 0 && currentWeaponProps.reserveAmmo > 0) {
+                // Use reserve ammo to fully load the gun if possible
+                if (currentWeaponProps.reserveAmmo >= ammoNeeded) {
+                    // Enough reserve ammo to fully load
+                    currentWeaponProps.reserveAmmo -= ammoNeeded;
+                    currentWeaponProps.currentAmmo = currentWeaponProps.maxAmmo;
+                } else {
+                    // Not enough reserve, use all remaining reserve
+                    currentWeaponProps.currentAmmo += currentWeaponProps.reserveAmmo;
+                    currentWeaponProps.reserveAmmo = 0;
+                }
+                
+                // Play reload complete sound if available
+                if (this.audioSystem && this.audioSystem.playSound) {
+                    this.audioSystem.playSound('reloadComplete', 0.5);
+                }
+            }
+            
+            // Reset UI when reload animation completes
+            const weaponUI = document.getElementById('ammo-container');
+            if (weaponUI) {
+                weaponUI.classList.remove('reloading');
+                
+                // Reset weapon name
+                const weaponName = document.getElementById('weapon-name');
+                if (weaponName) {
+                    let weaponType = 'Paintball Pistol';
+                    if (this.currentWeapon === 'paintball') {
+                        weaponType = 'Paintball Gun';
+                    } else if (this.currentWeapon === 'rifle') {
+                        weaponType = 'Paintball Rifle';
+                    }
+                    weaponName.textContent = weaponType;
+                }
+            }
+            
+            // Update the ammo display
+            this.updateWeaponUI();
         }
     }
 

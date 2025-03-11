@@ -52,17 +52,22 @@
       align-items: center;
     }
     #ammo-bar {
-      width: 160px;
-      height: 10px;
+      width: 180px;
+      height: 16px;
       background: rgba(0, 0, 0, 0.5);
-      border: 1px solid #fff;
-      margin-top: 5px;
+      border: 2px solid #fff;
+      border-radius: 8px;
+      margin-top: 8px;
       overflow: hidden;
+      box-shadow: 0 0 5px rgba(0, 0, 0, 0.8);
     }
     #ammo-fill {
       height: 100%;
       background: #ffcc00;
-      transition: width 0.3s;
+      background-image: linear-gradient(45deg, rgba(255,255,255,0.2) 25%, transparent 25%, transparent 50%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0.2) 75%, transparent 75%, transparent);
+      background-size: 16px 16px;
+      transition: width 0.3s, background 0.3s;
+      box-shadow: 0 0 8px rgba(255, 204, 0, 0.5) inset;
     }
     #weapon-name {
       color: #ffcc00;
@@ -87,6 +92,10 @@
       33% { content: '..'; }
       66% { content: '...'; }
       100% { content: '.'; }
+    }
+    @keyframes move {
+      0% { background-position: 0 0; }
+      100% { background-position: 32px 32px; }
     }
     #score {
       position: absolute;
@@ -133,7 +142,6 @@
     <div id="health-bar"><div id="health-fill"></div></div>
     <div id="ammo-container">
       <div id="weapon-name">Paintball Pistol</div>
-      <div id="ammo-counter">30 / 90</div>
       <div id="ammo-bar"><div id="ammo-fill" style="width: 100%"></div></div>
     </div>
     <div id="score">Score: 0</div>

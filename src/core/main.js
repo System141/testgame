@@ -15,6 +15,7 @@ import GameState from '/src/core/gameState.js';
 import Weapon from '/src/weapons/weapon.js';
 import Enemy from '/src/entities/enemy.js';
 import TextureGenerator from '/src/utils/textureGenerator.js';
+import { initWeaponUI } from '/src/ui/weaponUI.js';
 
 // Game variables
 let camera, scene, renderer, controls, gameMap, skySphere, gameState, weapon, physicsWorld;
@@ -66,6 +67,9 @@ function init() {
 
         // Create weapon system
         weapon = new Weapon(scene, camera, gameState);
+        
+        // Initialize enhanced weapon UI
+        initWeaponUI(gameState);
 
         // Generate game environment
         gameMap = new GameMap(scene, physicsWorld);
@@ -290,7 +294,7 @@ function checkGameOver() {
 function handleKeyDown(event) {
     // Reload with R key
     if (event.code === 'KeyR') {
-        weapon.reload();
+        weapon.startReload();
     }
     
     // Add more global keyboard controls here
