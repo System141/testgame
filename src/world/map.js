@@ -218,75 +218,75 @@ export default class GameMap {
   }
   
   createObstacles() {
-    // Create the paintball field based on the provided image
+    // Create a longer paintball field with taller objects for better player coverage
     // Generate textures for variety
     const bunkerTexture = this.textureGenerator.generateCanvasBunkerTexture('#333333');
     const redTexture = this.textureGenerator.generateCanvasInflatableTexture('#cc3333');
     const blueTexture = this.textureGenerator.generateCanvasInflatableTexture('#3333cc');
     
-    // Field boundaries (the gray barriers on the sides)
-    this.createBunker(-45, 2, 0, 2, 4, 80, this.textures.wall); // Left wall
-    this.createBunker(45, 2, 0, 2, 4, 80, this.textures.wall); // Right wall
+    // Field boundaries (the gray barriers on the sides) - lengthened and taller
+    this.createBunker(-50, 2, 0, 2, 5, 120, this.textures.wall); // Left wall
+    this.createBunker(50, 2, 0, 2, 5, 120, this.textures.wall); // Right wall
     
-    // Create the zigzag/W-shaped bunkers at top and bottom
+    // Create the zigzag/W-shaped bunkers at top and bottom (taller and moved further apart)
     // Top zigzag
-    this.createBunker(-20, 1, -25, 8, 2, 2, bunkerTexture); // Left segment
-    this.createBunker(-10, 1, -25, 8, 2, 2, bunkerTexture); // Left-Center segment
-    this.createBunker(0, 1, -25, 8, 2, 2, bunkerTexture);   // Center segment
-    this.createBunker(10, 1, -25, 8, 2, 2, bunkerTexture);  // Right-Center segment
-    this.createBunker(20, 1, -25, 8, 2, 2, bunkerTexture);  // Right segment
+    this.createBunker(-20, 1, -35, 8, 3.5, 2, bunkerTexture); // Left segment
+    this.createBunker(-10, 1, -35, 8, 3.5, 2, bunkerTexture); // Left-Center segment
+    this.createBunker(0, 1, -35, 8, 3.5, 2, bunkerTexture);   // Center segment
+    this.createBunker(10, 1, -35, 8, 3.5, 2, bunkerTexture);  // Right-Center segment
+    this.createBunker(20, 1, -35, 8, 3.5, 2, bunkerTexture);  // Right segment
     
     // Bottom zigzag
-    this.createBunker(-20, 1, 25, 8, 2, 2, bunkerTexture); // Left segment
-    this.createBunker(-10, 1, 25, 8, 2, 2, bunkerTexture); // Left-Center segment
-    this.createBunker(0, 1, 25, 8, 2, 2, bunkerTexture);   // Center segment
-    this.createBunker(10, 1, 25, 8, 2, 2, bunkerTexture);  // Right-Center segment
-    this.createBunker(20, 1, 25, 8, 2, 2, bunkerTexture);  // Right segment
+    this.createBunker(-20, 1, 35, 8, 3.5, 2, bunkerTexture); // Left segment
+    this.createBunker(-10, 1, 35, 8, 3.5, 2, bunkerTexture); // Left-Center segment
+    this.createBunker(0, 1, 35, 8, 3.5, 2, bunkerTexture);   // Center segment
+    this.createBunker(10, 1, 35, 8, 3.5, 2, bunkerTexture);  // Right-Center segment
+    this.createBunker(20, 1, 35, 8, 3.5, 2, bunkerTexture);  // Right segment
     
-    // Create the center cross object
-    this.createBunker(0, 1, 0, 2, 2, 8, bunkerTexture); // Vertical bar
-    this.createBunker(0, 1, 0, 8, 2, 2, bunkerTexture); // Horizontal bar
+    // Create the center cross object - taller for better cover
+    this.createBunker(0, 1, 0, 3, 3.5, 10, bunkerTexture); // Vertical bar
+    this.createBunker(0, 1, 0, 10, 3.5, 3, bunkerTexture); // Horizontal bar
     
-    // Corner diamonds/squares
-    this.createBunker(-15, 1, -15, 4, 2, 4, bunkerTexture); // Top left
-    this.createBunker(15, 1, -15, 4, 2, 4, bunkerTexture);  // Top right
-    this.createBunker(-15, 1, 15, 4, 2, 4, bunkerTexture);  // Bottom left
-    this.createBunker(15, 1, 15, 4, 2, 4, bunkerTexture);   // Bottom right
+    // Corner diamonds/squares - taller and larger
+    this.createBunker(-20, 1, -20, 5, 3.5, 5, bunkerTexture); // Top left
+    this.createBunker(20, 1, -20, 5, 3.5, 5, bunkerTexture);  // Top right
+    this.createBunker(-20, 1, 20, 5, 3.5, 5, bunkerTexture);  // Bottom left
+    this.createBunker(20, 1, 20, 5, 3.5, 5, bunkerTexture);   // Bottom right
     
-    // Small rectangular barriers on the sides
-    this.createBunker(-25, 1, -5, 2, 2, 4, bunkerTexture);  // Left upper
-    this.createBunker(-25, 1, 5, 2, 2, 4, bunkerTexture);   // Left lower
-    this.createBunker(25, 1, -5, 2, 2, 4, bunkerTexture);   // Right upper
-    this.createBunker(25, 1, 5, 2, 2, 4, bunkerTexture);    // Right lower
+    // Side barriers - taller and repositioned for longer field
+    this.createBunker(-35, 1, -10, 3, 3.5, 5, bunkerTexture);  // Left upper
+    this.createBunker(-35, 1, 10, 3, 3.5, 5, bunkerTexture);   // Left lower
+    this.createBunker(35, 1, -10, 3, 3.5, 5, bunkerTexture);   // Right upper
+    this.createBunker(35, 1, 10, 3, 3.5, 5, bunkerTexture);    // Right lower
     
-    // Add circular inflatables (the round objects with red dots)
+    // Add circular inflatables (larger and taller for better cover)
     // Top half of the field
-    this.createInflatable(-35, 1, -25, redTexture);  // Far left
-    this.createInflatable(-30, 1, -10, redTexture);  // Left area
-    this.createInflatable(-15, 1, -35, redTexture);  // Top left
-    this.createInflatable(0, 1, -15, redTexture);    // Top center
-    this.createInflatable(15, 1, -35, redTexture);   // Top right
-    this.createInflatable(30, 1, -10, redTexture);   // Right area
-    this.createInflatable(35, 1, -25, redTexture);   // Far right
+    this.createInflatable(-40, 1, -30, redTexture, 2, 3.5);  // Far left - bigger and taller
+    this.createInflatable(-30, 1, -15, redTexture, 2, 3.5);  // Left area
+    this.createInflatable(-15, 1, -45, redTexture, 2, 3.5);  // Top left
+    this.createInflatable(0, 1, -20, redTexture, 2, 3.5);    // Top center
+    this.createInflatable(15, 1, -45, redTexture, 2, 3.5);   // Top right
+    this.createInflatable(30, 1, -15, redTexture, 2, 3.5);   // Right area
+    this.createInflatable(40, 1, -30, redTexture, 2, 3.5);   // Far right
     
     // Bottom half of the field
-    this.createInflatable(-35, 1, 25, redTexture);   // Far left
-    this.createInflatable(-30, 1, 10, redTexture);   // Left area
-    this.createInflatable(-15, 1, 35, redTexture);   // Bottom left
-    this.createInflatable(0, 1, 15, redTexture);     // Bottom center
-    this.createInflatable(15, 1, 35, redTexture);    // Bottom right
-    this.createInflatable(30, 1, 10, redTexture);    // Right area
-    this.createInflatable(35, 1, 25, redTexture);    // Far right
+    this.createInflatable(-40, 1, 30, redTexture, 2, 3.5);   // Far left
+    this.createInflatable(-30, 1, 15, redTexture, 2, 3.5);   // Left area
+    this.createInflatable(-15, 1, 45, redTexture, 2, 3.5);   // Bottom left
+    this.createInflatable(0, 1, 20, redTexture, 2, 3.5);     // Bottom center
+    this.createInflatable(15, 1, 45, redTexture, 2, 3.5);    // Bottom right
+    this.createInflatable(30, 1, 15, redTexture, 2, 3.5);    // Right area
+    this.createInflatable(40, 1, 30, redTexture, 2, 3.5);    // Far right
     
-    // Add triangular objects (noticed a few in the image)
-    this.createTriangularBunker(-25, 1, -35, bunkerTexture); // Top left
-    this.createTriangularBunker(25, 1, -35, bunkerTexture);  // Top right
-    this.createTriangularBunker(-25, 1, 35, bunkerTexture);  // Bottom left
-    this.createTriangularBunker(25, 1, 35, bunkerTexture);   // Bottom right
+    // Add triangular objects - taller for better coverage
+    this.createTriangularBunker(-30, 1, -45, bunkerTexture, 3.5); // Top left - taller
+    this.createTriangularBunker(30, 1, -45, bunkerTexture, 3.5);  // Top right - taller
+    this.createTriangularBunker(-30, 1, 45, bunkerTexture, 3.5);  // Bottom left - taller
+    this.createTriangularBunker(30, 1, 45, bunkerTexture, 3.5);   // Bottom right - taller
     
-    // Team base indicators
-    this.createTeamIndicator(-40, 1, -40, this.teamColors.blue); // Blue team (top left)
-    this.createTeamIndicator(40, 1, 40, this.teamColors.red);    // Red team (bottom right)
+    // Team base indicators - moved further out for longer field
+    this.createTeamIndicator(-45, 1, -55, this.teamColors.blue); // Blue team (top left)
+    this.createTeamIndicator(45, 1, 55, this.teamColors.red);    // Red team (bottom right)
   }
   
   // Create a team base indicator object with team color  
@@ -337,9 +337,9 @@ export default class GameMap {
   }
   
   // Creates a triangular bunker obstacle (for the diagonal corners in the paintball map)
-  createTriangularBunker(x, y, z, texture) {
+  createTriangularBunker(x, y, z, texture, height = 2) {
     // Create a triangular prism using a custom geometry
-    const height = 2;
+    // Allow custom height for taller cover
     const length = 4;
     
     // Define the triangular shape
@@ -607,9 +607,9 @@ export default class GameMap {
     }
   }
   
-  createInflatable(x, y, z, texture) {
-    // Create inflatable bunker (cylinder)
-    const geometry = new THREE.CylinderGeometry(2, 2, 2, 16);
+  createInflatable(x, y, z, texture, radius = 2, height = 2) {
+    // Create inflatable bunker (cylinder) with custom radius and height
+    const geometry = new THREE.CylinderGeometry(radius, radius, height, 16);
     
     // Use provided texture or generate one if none was provided
     const material = new THREE.MeshStandardMaterial({ 
@@ -620,8 +620,9 @@ export default class GameMap {
       bumpScale: 0.05
     });
     
+    // Position adjusted to account for height
     const inflatable = new THREE.Mesh(geometry, material);
-    inflatable.position.set(x, y, z);
+    inflatable.position.set(x, y + height/2, z);
     inflatable.castShadow = true;
     inflatable.receiveShadow = true;
     inflatable.userData.isInflatable = true;
@@ -629,29 +630,29 @@ export default class GameMap {
     inflatable.userData.type = 'inflatable';
     
     // Add air valve detail to the inflatable
-    this.addInflatableDetail(inflatable);
+    this.addInflatableDetail(inflatable, radius);
     
     // Apply random rotation for variety
     inflatable.rotation.y = Math.random() * Math.PI * 2;
     
     // Randomly add paint splatters to some inflatables (30% chance)
     if (Math.random() < 0.3) {
-      this.addCylindricalPaintSplatters(inflatable);
+      this.addCylindricalPaintSplatters(inflatable, height);
     }
     
     this.scene.add(inflatable);
     
     // Create physics body - using a box for simplicity
-    // In a more advanced implementation, a cylinder shape would be better
+    // Scale physics body based on radius and height
     const inflatableBody = new Body({
       mass: 0,
-      position: new Vec3(x, y, z),
-      shape: new Box(new Vec3(1.5, 1, 1.5)) // Slightly smaller than visual to account for cylinder vs box
+      position: new Vec3(x, y + height/2, z),
+      shape: new Box(new Vec3(radius * 0.8, height/2, radius * 0.8)) // Slightly smaller than visual
     });
     
     // Link mesh and physics body for proper synchronization
     inflatable.userData.physicsBody = inflatableBody;
-    inflatableBody.userData = { mesh: inflatable };
+    inflatableBody.userData = { mesh: inflatable, isObstacle: true, type: 'inflatable' };
     
     this.physicsWorld.addBody(inflatableBody);
     
@@ -659,7 +660,7 @@ export default class GameMap {
   }
   
   // Add visual detail to inflatable objects
-  addInflatableDetail(inflatable) {
+  addInflatableDetail(inflatable, radius = 2) {
     // Create air valve/cap detail
     const valveGeometry = new THREE.CylinderGeometry(0.2, 0.2, 0.1, 8);
     const valveMaterial = new THREE.MeshStandardMaterial({
@@ -670,14 +671,14 @@ export default class GameMap {
     
     const valve = new THREE.Mesh(valveGeometry, valveMaterial);
     
-    // Position valve on the side of the inflatable
-    valve.position.set(1.9, 0, 0);
+    // Position valve on the side of the inflatable (adjusted for radius)
+    valve.position.set(radius * 0.95, 0, 0);
     valve.rotation.z = Math.PI / 2;
     inflatable.add(valve);
   }
   
   // Add paint splatters to cylindrical objects
-  addCylindricalPaintSplatters(object) {
+  addCylindricalPaintSplatters(object, height = 2) {
     const colors = ['#ff3333', '#3366ff', '#33ff33', '#ffff33', '#ff33ff'];
     const splatterCount = Math.floor(Math.random() * 3) + 1; // 1-3 splatters
     
@@ -694,16 +695,16 @@ export default class GameMap {
       
       const splatter = new THREE.Mesh(splatterGeometry, splatterMaterial);
       
-      // Position on a random spot on the cylinder
+      // Position on a random spot on the cylinder (adjusted for height)
       const angle = Math.random() * Math.PI * 2;
-      const height = (Math.random() - 0.5) * 1.6; // Random height along cylinder
+      const heightPos = (Math.random() - 0.5) * (height * 0.8); // Random height along cylinder (scaled to object height)
       
       // Position splatter on cylinder surface
       const radius = 2 + 0.01; // Cylinder radius + small offset
       const x = Math.cos(angle) * radius;
       const z = Math.sin(angle) * radius;
       
-      splatter.position.set(x, height, z);
+      splatter.position.set(x, heightPos, z);
       
       // Orient splatter to face outward from cylinder surface
       splatter.lookAt(splatter.position.clone().add(new THREE.Vector3(x, 0, z).normalize()));
@@ -715,9 +716,9 @@ export default class GameMap {
     }
   }
   
-  createBarrel(x, y, z, texture) {
-    // Create barrel (cylinder)
-    const geometry = new THREE.CylinderGeometry(1, 1, 2, 16);
+  createBarrel(x, y, z, texture, radius = 1, height = 2) {
+    // Create barrel (cylinder) with custom radius and height
+    const geometry = new THREE.CylinderGeometry(radius, radius, height, 16);
     
     // Use provided texture or generate one if none was provided
     const material = new THREE.MeshStandardMaterial({ 
@@ -727,8 +728,9 @@ export default class GameMap {
       bumpScale: 0.05
     });
     
+    // Position adjusted to account for height
     const barrel = new THREE.Mesh(geometry, material);
-    barrel.position.set(x, y, z);
+    barrel.position.set(x, y + height/2, z);
     barrel.castShadow = true;
     barrel.receiveShadow = true;
     barrel.userData.isBarrel = true;
@@ -736,28 +738,28 @@ export default class GameMap {
     barrel.userData.type = 'barrel';
     
     // Add barrel rim details for more realism
-    this.addBarrelDetails(barrel);
+    this.addBarrelDetails(barrel, radius, height);
     
     // Apply random rotation for variety
     barrel.rotation.y = Math.random() * Math.PI * 2;
     
     // Randomly add paint splatters to some barrels (35% chance)
     if (Math.random() < 0.35) {
-      this.addCylindricalPaintSplatters(barrel);
+      this.addCylindricalPaintSplatters(barrel, height);
     }
     
     this.scene.add(barrel);
     
-    // Create physics body
+    // Create physics body scaled to barrel dimensions
     const barrelBody = new Body({
       mass: 0,
-      position: new Vec3(x, y, z),
-      shape: new Box(new Vec3(1, 1, 1)) // Box approximation of cylinder
+      position: new Vec3(x, y + height/2, z),
+      shape: new Box(new Vec3(radius, height/2, radius)) // Box approximation of cylinder
     });
     
     // Link mesh and physics body for proper synchronization
     barrel.userData.physicsBody = barrelBody;
-    barrelBody.userData = { mesh: barrel };
+    barrelBody.userData = { mesh: barrel, isObstacle: true, type: 'barrel' };
     
     this.physicsWorld.addBody(barrelBody);
     
@@ -765,10 +767,10 @@ export default class GameMap {
   }
   
   // Add detailed rim features to barrels
-  addBarrelDetails(barrel) {
+  addBarrelDetails(barrel, radius = 1, height = 2) {
     // Add top and bottom rims to barrels
     const addRim = (yPos) => {
-      const rimGeometry = new THREE.TorusGeometry(1.05, 0.1, 8, 16);
+      const rimGeometry = new THREE.TorusGeometry(radius * 1.05, radius * 0.1, 8, 16);
       const rimMaterial = new THREE.MeshStandardMaterial({
         color: 0x777777,
         roughness: 0.5,
@@ -781,9 +783,9 @@ export default class GameMap {
       barrel.add(rim);
     };
     
-    // Add top and bottom rims
-    addRim(1); // Top rim
-    addRim(-1); // Bottom rim
+    // Add top and bottom rims (adjusted for height)
+    addRim(height/2); // Top rim
+    addRim(-height/2); // Bottom rim
     
     // Add a barrel logo/marking as a decal
     const addBarrelLogo = () => {
@@ -798,7 +800,7 @@ export default class GameMap {
       const logo = new THREE.Mesh(logoGeometry, logoMaterial);
       
       // Position logo on the side of the barrel
-      logo.position.set(0, 0, 1.05); // Slightly offset from surface
+      logo.position.set(0, 0, radius * 1.05); // Slightly offset from surface
       logo.rotation.x = Math.PI / 2;
       logo.rotation.y = Math.PI / 2;
       
@@ -811,20 +813,20 @@ export default class GameMap {
     }
   }
   
-  createBarrelStack(x, y, z, texture) {
+  createBarrelStack(x, y, z, texture, radius = 1, height = 2) {
     // Create a stack of two barrels with slight offsets for realism
-    const bottomBarrel = this.createBarrel(x, y, z, texture);
+    const bottomBarrel = this.createBarrel(x, y, z, texture, radius, height);
     
     // Create a slightly offset barrel on top
     const offsetX = (Math.random() - 0.5) * 0.3;
     const offsetZ = (Math.random() - 0.5) * 0.3;
-    this.createBarrel(x + offsetX, y + 2, z + offsetZ, texture);
+    this.createBarrel(x + offsetX, y + height, z + offsetZ, texture, radius, height);
     
     // Sometimes add a third barrel for more complexity (30% chance)
     if (Math.random() < 0.3) {
       const offsetX2 = (Math.random() - 0.5) * 0.4;
       const offsetZ2 = (Math.random() - 0.5) * 0.4;
-      this.createBarrel(x + offsetX2, y + 4, z + offsetZ2, texture);
+      this.createBarrel(x + offsetX2, y + height * 2, z + offsetZ2, texture, radius, height);
     }
   }
 }
