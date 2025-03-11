@@ -218,39 +218,75 @@ export default class GameMap {
   }
   
   createObstacles() {
-    // Create a rectangular field with two symmetrically placed bunkers as shown in the diagram
-    // Generate a clean bunker texture for consistency
+    // Create the paintball field based on the provided image
+    // Generate textures for variety
     const bunkerTexture = this.textureGenerator.generateCanvasBunkerTexture('#333333');
+    const redTexture = this.textureGenerator.generateCanvasInflatableTexture('#cc3333');
+    const blueTexture = this.textureGenerator.generateCanvasInflatableTexture('#3333cc');
     
-    // Main rectangular field boundaries
-    // Side walls to define the rectangular field boundary
-    this.createBunker(-40, 2, 0, 3, 4, 80, this.textures.wall); // Left wall
-    this.createBunker(40, 2, 0, 3, 4, 80, this.textures.wall); // Right wall
-    this.createBunker(0, 2, -40, 80, 4, 3, this.textures.wall); // Back wall
-    this.createBunker(0, 2, 40, 80, 4, 3, this.textures.wall); // Front wall
+    // Field boundaries (the gray barriers on the sides)
+    this.createBunker(-45, 2, 0, 2, 4, 80, this.textures.wall); // Left wall
+    this.createBunker(45, 2, 0, 2, 4, 80, this.textures.wall); // Right wall
     
-    // Create the two main rectangular bunkers exactly like in the diagram
-    // Bottom bunker (closer to viewer in diagram)
-    this.createBunker(0, 1, 20, 25, 2, 8, bunkerTexture);
+    // Create the zigzag/W-shaped bunkers at top and bottom
+    // Top zigzag
+    this.createBunker(-20, 1, -25, 8, 2, 2, bunkerTexture); // Left segment
+    this.createBunker(-10, 1, -25, 8, 2, 2, bunkerTexture); // Left-Center segment
+    this.createBunker(0, 1, -25, 8, 2, 2, bunkerTexture);   // Center segment
+    this.createBunker(10, 1, -25, 8, 2, 2, bunkerTexture);  // Right-Center segment
+    this.createBunker(20, 1, -25, 8, 2, 2, bunkerTexture);  // Right segment
     
-    // Top bunker (further from viewer in diagram) 
-    this.createBunker(0, 1, -20, 25, 2, 8, bunkerTexture);
+    // Bottom zigzag
+    this.createBunker(-20, 1, 25, 8, 2, 2, bunkerTexture); // Left segment
+    this.createBunker(-10, 1, 25, 8, 2, 2, bunkerTexture); // Left-Center segment
+    this.createBunker(0, 1, 25, 8, 2, 2, bunkerTexture);   // Center segment
+    this.createBunker(10, 1, 25, 8, 2, 2, bunkerTexture);  // Right-Center segment
+    this.createBunker(20, 1, 25, 8, 2, 2, bunkerTexture);  // Right segment
     
-    // Create team-colored bases at opposite corners (maintaining the symmetrical competitive layout)
-    // Red team base (bottom right)
-    this.createBunker(35, 1, 35, 8, 3, 8, this.textures.redTeam);
-    // Add team indicator without flag
-    this.createTeamIndicator(38, 1, 38, this.teamColors.red);
+    // Create the center cross object
+    this.createBunker(0, 1, 0, 2, 2, 8, bunkerTexture); // Vertical bar
+    this.createBunker(0, 1, 0, 8, 2, 2, bunkerTexture); // Horizontal bar
     
-    // Blue team base (top left)
-    this.createBunker(-35, 1, -35, 8, 3, 8, this.textures.blueTeam);
-    // Add team indicator without flag
-    this.createTeamIndicator(-38, 1, -38, this.teamColors.blue);
+    // Corner diamonds/squares
+    this.createBunker(-15, 1, -15, 4, 2, 4, bunkerTexture); // Top left
+    this.createBunker(15, 1, -15, 4, 2, 4, bunkerTexture);  // Top right
+    this.createBunker(-15, 1, 15, 4, 2, 4, bunkerTexture);  // Bottom left
+    this.createBunker(15, 1, 15, 4, 2, 4, bunkerTexture);   // Bottom right
     
-    // Add a few barrels at strategic positions for additional cover
-    // These maintain the symmetrical layout for balanced competitive play
-    this.createBarrelStack(15, 1, 0, this.textures.barrel); // Middle right
-    this.createBarrelStack(-15, 1, 0, this.textures.barrel); // Middle left
+    // Small rectangular barriers on the sides
+    this.createBunker(-25, 1, -5, 2, 2, 4, bunkerTexture);  // Left upper
+    this.createBunker(-25, 1, 5, 2, 2, 4, bunkerTexture);   // Left lower
+    this.createBunker(25, 1, -5, 2, 2, 4, bunkerTexture);   // Right upper
+    this.createBunker(25, 1, 5, 2, 2, 4, bunkerTexture);    // Right lower
+    
+    // Add circular inflatables (the round objects with red dots)
+    // Top half of the field
+    this.createInflatable(-35, 1, -25, redTexture);  // Far left
+    this.createInflatable(-30, 1, -10, redTexture);  // Left area
+    this.createInflatable(-15, 1, -35, redTexture);  // Top left
+    this.createInflatable(0, 1, -15, redTexture);    // Top center
+    this.createInflatable(15, 1, -35, redTexture);   // Top right
+    this.createInflatable(30, 1, -10, redTexture);   // Right area
+    this.createInflatable(35, 1, -25, redTexture);   // Far right
+    
+    // Bottom half of the field
+    this.createInflatable(-35, 1, 25, redTexture);   // Far left
+    this.createInflatable(-30, 1, 10, redTexture);   // Left area
+    this.createInflatable(-15, 1, 35, redTexture);   // Bottom left
+    this.createInflatable(0, 1, 15, redTexture);     // Bottom center
+    this.createInflatable(15, 1, 35, redTexture);    // Bottom right
+    this.createInflatable(30, 1, 10, redTexture);    // Right area
+    this.createInflatable(35, 1, 25, redTexture);    // Far right
+    
+    // Add triangular objects (noticed a few in the image)
+    this.createTriangularBunker(-25, 1, -35, bunkerTexture); // Top left
+    this.createTriangularBunker(25, 1, -35, bunkerTexture);  // Top right
+    this.createTriangularBunker(-25, 1, 35, bunkerTexture);  // Bottom left
+    this.createTriangularBunker(25, 1, 35, bunkerTexture);   // Bottom right
+    
+    // Team base indicators
+    this.createTeamIndicator(-40, 1, -40, this.teamColors.blue); // Blue team (top left)
+    this.createTeamIndicator(40, 1, 40, this.teamColors.red);    // Red team (bottom right)
   }
   
   // Create a team base indicator object with team color  
@@ -298,6 +334,95 @@ export default class GameMap {
     this.physicsWorld.addBody(indicatorBody);
     
     return { pole, sphere, body: indicatorBody };
+  }
+  
+  // Creates a triangular bunker obstacle (for the diagonal corners in the paintball map)
+  createTriangularBunker(x, y, z, texture) {
+    // Create a triangular prism using a custom geometry
+    const height = 2;
+    const length = 4;
+    
+    // Define the triangular shape
+    const geometry = new THREE.BufferGeometry();
+    
+    // Define the vertices (triangular prism)
+    const vertices = new Float32Array([
+      // Front triangle
+      -length/2, 0, length/2,       // bottom left
+      length/2, 0, length/2,        // bottom right
+      0, height, 0,                 // top center
+      
+      // Back triangle
+      -length/2, 0, -length/2,      // bottom left
+      length/2, 0, -length/2,       // bottom right
+      0, height, 0,                 // top center
+      
+      // Left side (rectangle)
+      -length/2, 0, -length/2,      // bottom back
+      -length/2, 0, length/2,       // bottom front
+      0, height, 0,                 // top center front
+      
+      // Right side (rectangle)
+      length/2, 0, -length/2,       // bottom back
+      length/2, 0, length/2,        // bottom front
+      0, height, 0,                 // top center
+      
+      // Bottom (rectangle)
+      -length/2, 0, -length/2,      // bottom left back
+      length/2, 0, -length/2,       // bottom right back
+      -length/2, 0, length/2,       // bottom left front
+      length/2, 0, length/2         // bottom right front
+    ]);
+    
+    // Define the indices (how vertices connect to form triangles)
+    const indices = [
+      0, 1, 2,           // front triangle
+      3, 4, 5,           // back triangle
+      6, 7, 8,           // left side
+      9, 10, 11,         // right side
+      12, 13, 14,        // bottom part 1
+      13, 15, 14         // bottom part 2
+    ];
+    
+    // Set the attributes
+    geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+    geometry.setIndex(indices);
+    
+    // Compute vertex normals for proper lighting
+    geometry.computeVertexNormals();
+    
+    // Create the material
+    const material = new THREE.MeshStandardMaterial({
+      map: texture,
+      roughness: 0.8,
+      metalness: 0.2
+    });
+    
+    // Create the mesh
+    const triangle = new THREE.Mesh(geometry, material);
+    triangle.position.set(x, y, z);
+    triangle.castShadow = true;
+    triangle.receiveShadow = true;
+    
+    // Add userData for collision detection and game logic
+    triangle.userData.isObstacle = true;
+    triangle.userData.type = 'triangularBunker';
+    
+    this.scene.add(triangle);
+    
+    // Create a physics body (box approximation for the triangle)
+    const triangleBody = new Body({
+      mass: 0, // Static body
+      position: new Vec3(x, y + height/2, z),
+      shape: new Box(new Vec3(length/2, height/2, length/2))
+    });
+    
+    // Link mesh and physics body
+    triangle.userData.physicsBody = triangleBody;
+    triangleBody.userData = { mesh: triangle, isObstacle: true, type: 'triangularBunker' };
+    this.physicsWorld.addBody(triangleBody);
+    
+    return triangle;
   }
   
   // Create X-shaped cross barriers for additional tactical cover
