@@ -73,6 +73,7 @@ export default class Weapon {
                 position: { x: 0.3, y: -0.2, z: -0.5 },
                 maxAmmo: 20,  // Lower ammo for paintball pistol
                 currentAmmo: 20,
+                reserveAmmo: 100,  // Added reserve ammo for reloading
                 reloadTime: 1500,
                 weaponType: 'paintball_pistol'
             },
@@ -87,6 +88,7 @@ export default class Weapon {
                 position: { x: 0.3, y: -0.2, z: -0.7 },
                 maxAmmo: 100,  // More ammo for rapid-fire paintball rifle (hopper)
                 currentAmmo: 100,
+                reserveAmmo: 300,  // Added reserve ammo for reloading
                 reloadTime: 2000,
                 weaponType: 'paintball_rifle'
             }
@@ -850,14 +852,43 @@ export default class Weapon {
                 currentWeaponProps.currentAmmo = Math.max(currentWeaponProps.currentAmmo, 1);
             }
             
-            // Update UI ammo count if available
-            if (this.gameState.updateAmmoUI) {
-                if (this.currentWeapon === 'paintball') {
-                    // Display infinity symbol for paintball ammo
-                    this.gameState.updateAmmoUI('∞', currentWeaponProps.maxAmmo, true);
+            // Update ammo bar UI directly after each shot
+            const ammoFill = document.getElementById('ammo-fill');
+            if (ammoFill) {
+                // Calculate percentage of ammo remaining
+                const percentage = (currentWeaponProps.currentAmmo / currentWeaponProps.maxAmmo) * 100;
+                ammoFill.style.width = `${percentage}%`;
+                
+                // Change color based on ammo level
+                if (percentage <= 25) {
+                    ammoFill.style.background = '#ff3333'; // Red when low
+                    ammoFill.style.backgroundImage = 'linear-gradient(45deg, rgba(255,255,255,0.2) 25%, transparent 25%, transparent 50%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0.2) 75%, transparent 75%, transparent)';
+                    ammoFill.style.animation = 'move 1s linear infinite';
+                } else if (percentage <= 50) {
+                    ammoFill.style.background = '#ff9933'; // Orange when medium
+                    ammoFill.style.backgroundImage = 'linear-gradient(45deg, rgba(255,255,255,0.2) 25%, transparent 25%, transparent 50%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0.2) 75%, transparent 75%, transparent)';
+                    ammoFill.style.animation = 'move 2s linear infinite';
                 } else {
-                    this.gameState.updateAmmoUI(currentWeaponProps.currentAmmo, currentWeaponProps.maxAmmo);
+                    ammoFill.style.background = '#ffcc00'; // Yellow when high
+                    ammoFill.style.backgroundImage = 'linear-gradient(45deg, rgba(255,255,255,0.2) 25%, transparent 25%, transparent 50%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0.2) 75%, transparent 75%, transparent)';
+                    ammoFill.style.animation = 'move 3s linear infinite';
                 }
+            }
+            
+            // Update weapon name to show ammo status if low
+            const weaponName = document.getElementById('weapon-name');
+            if (weaponName) {
+                const percentage = (currentWeaponProps.currentAmmo / currentWeaponProps.maxAmmo) * 100;
+                // Display ammo status in the weapon name as text description
+                const ammoStatus = percentage <= 25 ? ' [LOW AMMO]' : '';
+                
+                // Get the base weapon name without status
+                let baseWeaponName = 'Paintball Pistol';
+                if (this.currentWeapon === 'sniper') {
+                    baseWeaponName = 'Paintball Rifle';
+                }
+                
+                weaponName.textContent = baseWeaponName + ammoStatus;
             }
             
             // Start recoil animation
@@ -980,10 +1011,22 @@ export default class Weapon {
     }
 
     startReload() {
+        // Don't start reloading if already reloading
         if (this.reloadState.active) return;
         
-        const weaponModel = this.weapons[this.currentWeapon].model;
+        // Get current weapon properties
+        const currentWeaponProps = this.weapons[this.currentWeapon];
+        const weaponModel = currentWeaponProps.model;
         if (!weaponModel) return;
+        
+        // Don't reload if already at max ammo
+        if (currentWeaponProps.currentAmmo >= currentWeaponProps.maxAmmo) {
+            console.log('Already at max ammo');
+            return;
+        }
+        
+        console.log(`Starting reload for ${this.currentWeapon}`);
+        console.log(`Current ammo: ${currentWeaponProps.currentAmmo}/${currentWeaponProps.maxAmmo}`);
         
         // Set weapon-specific reload durations
         let reloadDuration = 1500; // Default reload duration
@@ -1007,7 +1050,8 @@ export default class Weapon {
             startTime: Date.now(),
             duration: reloadDuration,
             rotationStart: weaponModel.rotation.clone(),
-            positionStart: weaponModel.position.clone()
+            positionStart: weaponModel.position.clone(),
+            weaponToReload: this.currentWeapon  // Remember which weapon we're reloading
         };
         
         // Update UI to show reloading state
@@ -1019,6 +1063,15 @@ export default class Weapon {
             const weaponName = document.getElementById('weapon-name');
             if (weaponName) {
                 weaponName.innerHTML = 'RELOADING<span class="reload-dots">...</span>';
+            }
+            
+            // Also update the ammo bar to show reload progress animation
+            const ammoFill = document.getElementById('ammo-fill');
+            if (ammoFill) {
+                ammoFill.style.background = '#3399ff'; // Blue for reloading
+                ammoFill.style.width = '100%';
+                ammoFill.style.opacity = '0.7';
+                ammoFill.style.animation = 'move 1s linear infinite';
             }
         }
     }
@@ -1083,28 +1136,29 @@ export default class Weapon {
             weaponModel.rotation.copy(this.reloadState.rotationStart);
             weaponModel.position.copy(this.reloadState.positionStart);
             
-            // Fully reload the weapon from reserve ammo
-            const currentWeaponProps = this.weapons[this.currentWeapon];
+            // Important debugging
+            console.log('Reload animation completed');
             
-            // Calculate how much ammo is needed for a full reload
-            const ammoNeeded = currentWeaponProps.maxAmmo - currentWeaponProps.currentAmmo;
+            // Make sure we're using the correct weapon properties 
+            // (in case player switched weapons during reload)
+            const weaponToReload = this.reloadState.weaponToReload || this.currentWeapon;
+            const weaponProps = this.weapons[weaponToReload];
             
-            if (ammoNeeded > 0 && currentWeaponProps.reserveAmmo > 0) {
-                // Use reserve ammo to fully load the gun if possible
-                if (currentWeaponProps.reserveAmmo >= ammoNeeded) {
-                    // Enough reserve ammo to fully load
-                    currentWeaponProps.reserveAmmo -= ammoNeeded;
-                    currentWeaponProps.currentAmmo = currentWeaponProps.maxAmmo;
-                } else {
-                    // Not enough reserve, use all remaining reserve
-                    currentWeaponProps.currentAmmo += currentWeaponProps.reserveAmmo;
-                    currentWeaponProps.reserveAmmo = 0;
-                }
-                
-                // Play reload complete sound if available
-                if (this.audioSystem && this.audioSystem.playSound) {
-                    this.audioSystem.playSound('reloadComplete', 0.5);
-                }
+            // Store the previous ammo value for logging
+            const prevAmmo = weaponProps.currentAmmo;
+            
+            // ALWAYS set to max capacity after reload
+            weaponProps.currentAmmo = weaponProps.maxAmmo;
+            
+            // Log detailed reload information
+            console.log(`=== WEAPON RELOAD COMPLETED ===`);
+            console.log(`Weapon: ${weaponToReload}`); 
+            console.log(`Ammo before: ${prevAmmo}, After: ${weaponProps.currentAmmo}`);
+            console.log(`Max ammo: ${weaponProps.maxAmmo}`);
+            
+            // Play reload complete sound if available
+            if (this.audioSystem && this.audioSystem.playSound) {
+                this.audioSystem.playSound('reloadComplete', 0.5);
             }
             
             // Reset UI when reload animation completes
@@ -1125,7 +1179,40 @@ export default class Weapon {
                 }
             }
             
-            // Update the ammo display
+            // Reset UI when reload animation completes - must be AFTER ammo is updated
+            const ammoContainer = document.getElementById('ammo-container');
+            if (ammoContainer) {
+                // Remove the reloading class
+                ammoContainer.classList.remove('reloading');
+            }
+            
+            // Update the ammo bar UI directly for full visual feedback
+            const ammoFill = document.getElementById('ammo-fill');
+            if (ammoFill) {
+                // Transition effect from reload state to full state
+                ammoFill.style.transition = 'all 0.5s ease-out';
+                ammoFill.style.opacity = '1.0';
+                
+                // Always show full ammo bar after reload
+                ammoFill.style.width = '100%';
+                ammoFill.style.background = '#ffcc00';
+                ammoFill.style.backgroundImage = 'linear-gradient(45deg, rgba(255,255,255,0.2) 25%, transparent 25%, transparent 50%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0.2) 75%, transparent 75%, transparent)';
+                ammoFill.style.backgroundSize = '16px 16px';
+                ammoFill.style.animation = 'move 3s linear infinite';
+            }
+            
+            // Update weapon name to show ready state
+            const weaponName = document.getElementById('weapon-name');
+            if (weaponName) {
+                // Get proper weapon name
+                let weaponType = 'Paintball Pistol';
+                if (weaponToReload === 'sniper') {
+                    weaponType = 'Paintball Rifle';
+                }
+                weaponName.textContent = weaponType;
+            }
+            
+            // Call updateWeaponUI to ensure all UI elements are synchronized
             this.updateWeaponUI();
         }
     }
