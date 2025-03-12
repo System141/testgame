@@ -89,6 +89,26 @@ export default class TextureGenerator {
     }
     
     /**
+     * Adds noise texture to create subtle variation in the base color
+     * @param {CanvasRenderingContext2D} context - Canvas context
+     * @param {number} width - Canvas width
+     * @param {number} height - Canvas height
+     * @param {string} color - Color for the noise
+     * @param {number} opacity - Opacity of the noise
+     */
+    addNoiseTexture(context, width, height, color, opacity = 0.2) {
+        // Add subtle noise texture
+        for (let x = 0; x < width; x += 4) {
+            for (let y = 0; y < height; y += 4) {
+                if (Math.random() > 0.5) {
+                    context.fillStyle = `rgba(${this.hexToRgb(color)}, ${opacity * Math.random()})`;
+                    context.fillRect(x, y, 4, 4);
+                }
+            }
+        }
+    }
+    
+    /**
      * Generates a realistic paintball arena floor texture
      * @returns {THREE.CanvasTexture} The generated floor texture
      */
@@ -420,7 +440,7 @@ export default class TextureGenerator {
             const drips = 2 + Math.floor(Math.random() * 3);
             for (let j = 0; j < drips; j++) {
                 const dripAngle = Math.random() * Math.PI * 2;
-                const dripLength = splatterRadius * (0.5 + Math.random() * 1.5);
+                const dripLength = splatterRadius * 0.5 + Math.random() * splatterRadius * 0.7;
                 const dripWidth = splatterRadius * (0.1 + Math.random() * 0.3);
                 
                 const dripEndX = x + Math.cos(dripAngle) * dripLength;
@@ -643,6 +663,8 @@ export default class TextureGenerator {
         // Add horizontal barrel bands/ridges
         context.strokeStyle = '#444444'; // Darker gray
         context.lineWidth = 8;
+        
+        // Draw horizontal grid lines
         for (let y = canvas.height/8; y < canvas.height; y += canvas.height/4) {
             context.beginPath();
             context.moveTo(0, y);
@@ -695,19 +717,26 @@ export default class TextureGenerator {
         for (let x = 0; x < canvas.width; x += 16) {
             for (let y = 0; y < canvas.height; y += 16) {
                 const shade = Math.random() * 30;
-                context.fillStyle = this.adjustBrightness(baseColor, shade - 15); // Random slight variations
+                // Fix potential reference error by checking if method exists
+                const adjustedColor = this.adjustBrightness ? 
+                    this.adjustBrightness(baseColor, shade - 15) : 
+                    this.darkenColor ? this.darkenColor(baseColor, 15 - shade) : baseColor;
+                context.fillStyle = adjustedColor; // Random slight variations
                 context.fillRect(x, y, 16, 16);
             }
         }
         
         // Add highlight along edges to simulate inflated look
-        const highlightColor = this.lightenColor(baseColor, 40);
+        // Fix potential reference error by checking if method exists
+        const highlightColor = this.lightenColor ? 
+            this.lightenColor(baseColor, 40) : 
+            '#ffffff'; // Fallback to white if method doesn't exist
         context.strokeStyle = highlightColor;
         context.lineWidth = 20;
         context.strokeRect(10, 10, canvas.width - 20, canvas.height - 20);
         
         // Add seams
-        context.strokeStyle = this.darkenColor(baseColor, 20);
+        context.strokeStyle = this.darkenColor ? this.darkenColor(baseColor, 20) : '#000000';
         context.lineWidth = 3;
         
         // Horizontal seams
@@ -741,43 +770,6 @@ export default class TextureGenerator {
         texture.wrapS = THREE.RepeatWrapping;
         texture.wrapT = THREE.RepeatWrapping;
         return texture;
-    }
-    
-    /**
-     * Adds noise texture to create subtle variation in the base color
-     * @param {CanvasRenderingContext2D} context - Canvas context
-     * @param {number} width - Canvas width
-     * @param {number} height - Canvas height
-     * @param {string} color - Color for the noise
-     * @param {number} opacity - Opacity of the noise
-     */
-    addNoiseTexture(context, width, height, color, opacity = 0.2) {
-        // Add subtle noise texture
-        for (let x = 0; x < width; x += 4) {
-            for (let y = 0; y < height; y += 4) {
-                if (Math.random() > 0.5) {
-                    context.fillStyle = `rgba(${this.hexToRgb(color)}, ${opacity * Math.random()})`;
-                    context.fillRect(x, y, 4, 4);
-                }
-            }
-        }
-    }
-
-    /**
-     * Convert hex color to RGB values
-     * @param {string} hex - Hex color code 
-     * @returns {string} RGB values as comma-separated string
-     */
-    hexToRgb(hex) {
-        // Remove # if present
-        hex = hex.replace('#', '');
-        
-        // Parse hex values to RGB
-        const r = parseInt(hex.substring(0, 2), 16);
-        const g = parseInt(hex.substring(2, 4), 16);
-        const b = parseInt(hex.substring(4, 6), 16);
-        
-        return `${r}, ${g}, ${b}`;
     }
     
     drawPaintballPattern(context, width, height, color) {
@@ -832,13 +824,15 @@ export default class TextureGenerator {
             const x = Math.random() * width;
             const y = Math.random() * height;
             const length = 5 + Math.random() * 30;
-            const angle = Math.random() * Math.PI;
-            const thickness = 1 + Math.random() * 3;
+            const angle = Math.random() * Math.PI * 2;
             
-            context.lineWidth = thickness;
+            context.lineWidth = 1 + Math.random() * 3;
             context.beginPath();
             context.moveTo(x, y);
-            context.lineTo(x + Math.cos(angle) * length, y + Math.sin(angle) * length);
+            context.lineTo(
+                x + Math.cos(angle) * length,
+                y + Math.sin(angle) * length
+            );
             context.stroke();
         }
     }
@@ -867,6 +861,7 @@ export default class TextureGenerator {
     
     addPaintSplattersToContext(context, width, height, count = 5, opacity = 0.2, subtle = false) {
         const colors = this.paintballColors;
+        
         for (let i = 0; i < count; i++) {
             const x = Math.random() * width;
             const y = Math.random() * height;
@@ -944,79 +939,74 @@ export default class TextureGenerator {
      * @returns {THREE.CanvasTexture} Normal map texture
      */
     generateNormalMap(sourceCanvas, strength = 1.0) {
+        const width = sourceCanvas.width;
+        const height = sourceCanvas.height;
+        
         // Create a new canvas for the normal map
-        const canvas = document.createElement('canvas');
-        canvas.width = sourceCanvas.width;
-        canvas.height = sourceCanvas.height;
-        const ctx = canvas.getContext('2d');
+        const normalCanvas = document.createElement('canvas');
+        normalCanvas.width = width;
+        normalCanvas.height = height;
+        const ctx = normalCanvas.getContext('2d');
         
-        // Get the height map data
-        const sourceCtx = sourceCanvas.getContext('2d');
-        const heightData = sourceCtx.getImageData(0, 0, sourceCanvas.width, sourceCanvas.height);
-        const pixels = heightData.data;
+        // Get height map data
+        const heightContext = sourceCanvas.getContext('2d');
+        const heightData = heightContext.getImageData(0, 0, width, height).data;
         
-        // Create output image data
-        const normalData = ctx.createImageData(canvas.width, canvas.height);
+        // Create normal map image data
+        const normalData = ctx.createImageData(width, height);
         const normalPixels = normalData.data;
         
-        // Calculate normals based on surrounding pixel heights
-        for (let y = 0; y < canvas.height; y++) {
-            for (let x = 0; x < canvas.width; x++) {
-                // Get heights of surrounding pixels
-                const left = this.getPixelHeight(pixels, x - 1, y, canvas.width, canvas.height);
-                const right = this.getPixelHeight(pixels, x + 1, y, canvas.width, canvas.height);
-                const top = this.getPixelHeight(pixels, x, y - 1, canvas.width, canvas.height);
-                const bottom = this.getPixelHeight(pixels, x, y + 1, canvas.width, canvas.height);
+        // Helper function to get height value at a position
+        const getHeight = (x, y) => {
+            x = Math.max(0, Math.min(width - 1, x));
+            y = Math.max(0, Math.min(height - 1, y));
+            const idx = (y * width + x) * 4;
+            // Average RGB for grayscale height
+            return (heightData[idx] + heightData[idx + 1] + heightData[idx + 2]) / 3;
+        };
+        
+        // Calculate normal vectors from the height map using Sobel operator
+        for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+                // Sample neighboring heights using Sobel operator (3x3 kernel)
+                // Calculate x-derivative
+                const dX = 
+                    (getHeight(x+1, y-1) - getHeight(x-1, y-1)) + 
+                    (getHeight(x+1, y) * 2 - getHeight(x-1, y) * 2) + 
+                    (getHeight(x+1, y+1) - getHeight(x-1, y+1));
                 
-                // Calculate normal vector using central difference
-                const dx = (right - left) * strength;
-                const dy = (bottom - top) * strength;
-                const dz = 1.0; // Fixed z component
+                // Calculate y-derivative
+                const dY = 
+                    (getHeight(x-1, y+1) - getHeight(x-1, y-1)) + 
+                    (getHeight(x, y+1) * 2 - getHeight(x, y-1) * 2) + 
+                    (getHeight(x+1, y+1) - getHeight(x+1, y-1));
                 
-                // Normalize the vector
-                const length = Math.sqrt(dx * dx + dy * dy + dz * dz);
-                const nx = dx / length;
-                const ny = dy / length;
-                const nz = dz / length;
+                // Adjust strength
+                const dXScaled = dX * strength / 255;
+                const dYScaled = dY * strength / 255;
                 
-                // Convert from [-1,1] to [0,255] for RGB
-                const index = (y * canvas.width + x) * 4;
-                normalPixels[index] = Math.floor((nx + 1) * 127.5); // R: x component
-                normalPixels[index + 1] = Math.floor((ny + 1) * 127.5); // G: y component
-                normalPixels[index + 2] = Math.floor((nz + 1) * 127.5); // B: z component
-                normalPixels[index + 3] = 255; // Alpha
+                // Calculate normal vector (Z is constant for heightmaps)
+                const len = Math.sqrt(dXScaled * dXScaled + dYScaled * dYScaled + 1);
+                const nx = -dXScaled / len;
+                const ny = -dYScaled / len;
+                const nz = 1 / len;
+                
+                // Convert normal from [-1,1] to [0,255]
+                const idx = (y * width + x) * 4;
+                normalPixels[idx] = Math.floor((nx * 0.5 + 0.5) * 255);     // R (nx)
+                normalPixels[idx + 1] = Math.floor((ny * 0.5 + 0.5) * 255); // G (ny)
+                normalPixels[idx + 2] = Math.floor((nz * 0.5 + 0.5) * 255); // B (nz)
+                normalPixels[idx + 3] = 255; // Alpha
             }
         }
         
-        // Write the normal map to the canvas
+        // Put the normal map data into the canvas
         ctx.putImageData(normalData, 0, 0);
         
-        // Create a Three.js texture from the canvas
-        const texture = new THREE.CanvasTexture(canvas);
-        texture.wrapS = THREE.RepeatWrapping;
-        texture.wrapT = THREE.RepeatWrapping;
+        // Create Three.js texture from the canvas
+        const texture = new THREE.CanvasTexture(normalCanvas);
+        texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
         return texture;
-    }
-    
-    /**
-     * Helper method to get pixel height at coordinates
-     * @param {Uint8ClampedArray} pixels - The image pixel data
-     * @param {number} x - X coordinate
-     * @param {number} y - Y coordinate
-     * @param {number} width - Image width
-     * @param {number} height - Image height
-     * @returns {number} Pixel height value
-     */
-    getPixelHeight(pixels, x, y, width, height) {
-        // Clamp coordinates to image bounds
-        x = Math.max(0, Math.min(width - 1, x));
-        y = Math.max(0, Math.min(height - 1, y));
-        
-        // Get pixel index
-        const index = (y * width + x) * 4;
-        
-        // Return grayscale value (average of RGB)
-        return (pixels[index] + pixels[index + 1] + pixels[index + 2]) / 3;
     }
     
     /**
@@ -1062,50 +1052,75 @@ export default class TextureGenerator {
     
     /**
      * Creates a complete material set for paintball arena objects
-     * @param {string} textureType - Type of texture ('floor', 'wall', etc.)
+     * @param {string} type - Type of material to create (floor, wall, etc.)
      * @param {Object} options - Material options
-     * @returns {THREE.MeshStandardMaterial} The complete material
+     * @returns {THREE.MeshStandardMaterial} The created material
      */
-    createPaintballMaterial(textureType, options = {}) {
-        // Check if already in cache
-        const cacheKey = `${textureType}_${JSON.stringify(options)}`;
-        if (this.textureCache[cacheKey]) {
-            return this.textureCache[cacheKey];
+    createPaintballMaterial(type, options = {}) {
+        // Validate type
+        if (!['floor', 'wall', 'bunker', 'inflatable', 'barrel'].includes(type)) {
+            console.warn(`Invalid material type: ${type}, defaulting to wall`);
+            type = 'wall';
         }
         
-        let diffuseMap, normalMap, roughnessMap;
-        const canvas = document.createElement('canvas');
-        canvas.width = 1024;
-        canvas.height = 1024;
-        const ctx = canvas.getContext('2d');
+        // Check if we have cached textures
+        let diffuseMap, normalMap;
         
-        // Generate appropriate texture based on type
-        switch(textureType) {
-            case 'floor':
-                // Draw height map for normal map generation
-                this.drawPaintballFloorHeightMap(ctx, canvas.width, canvas.height);
-                normalMap = this.generateNormalMap(canvas, 2.0);
-                
-                // Draw diffuse texture
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                this.drawPaintballFloorDiffuseMap(ctx, canvas.width, canvas.height);
-                diffuseMap = this.createOptimizedTexture(canvas, {repeat: [8, 8]});
-                break;
-                
-            case 'wall':
-                // Similar structure for other texture types
-                this.drawPaintballWallHeightMap(ctx, canvas.width, canvas.height);
-                normalMap = this.generateNormalMap(canvas, 1.5);
-                
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
-                this.drawPaintballWallDiffuseMap(ctx, canvas.width, canvas.height);
-                diffuseMap = this.createOptimizedTexture(canvas, {repeat: [4, 4]});
-                break;
-                
-            // Add other texture types as needed
+        // Initialize caches if they don't exist
+        this.textureCache.diffuse = this.textureCache.diffuse || {};
+        this.textureCache.normal = this.textureCache.normal || {};
+        
+        // Try to get diffuse texture (from cache or generate new)
+        if (this.textureCache.diffuse[type]) {
+            diffuseMap = this.textureCache.diffuse[type];
+            console.log(`Using cached ${type} diffuse texture`);
+        } else {
+            // Generate appropriate texture based on type
+            switch (type) {
+                case 'floor':
+                    diffuseMap = this.generatePaintballArenaFloorTexture();
+                    break;
+                case 'wall':
+                    diffuseMap = this.generateCanvasWallTexture();
+                    break;
+                case 'bunker':
+                    diffuseMap = this.generateCanvasBunkerTexture();
+                    break;
+                case 'inflatable':
+                    diffuseMap = this.generateCanvasInflatableTexture();
+                    break;
+                case 'barrel':
+                    diffuseMap = this.generateCanvasBarrelTexture();
+                    break;
+            }
+            
+            // Cache the texture
+            this.textureCache.diffuse[type] = diffuseMap;
         }
         
-        // Create material
+        // Try to get normal map (from cache or generate new)
+        if (this.textureCache.normal[type]) {
+            normalMap = this.textureCache.normal[type];
+            console.log(`Using cached ${type} normal map`);
+        } else if (type === 'floor' || type === 'wall') {
+            // Only generate normal maps for certain types that would benefit from them
+            // Generate a height map first if needed
+            let heightMap;
+            
+            if (type === 'floor') {
+                heightMap = this.createFloorHeightMap(2048, 2048);
+            } else if (type === 'wall') {
+                heightMap = this.createWallHeightMap(2048, 2048);
+            }
+            
+            if (heightMap) {
+                normalMap = this.generateNormalMap(heightMap);
+                // Cache the normal map
+                this.textureCache.normal[type] = normalMap;
+            }
+        }
+        
+        // Create material with appropriate textures and settings
         const material = new THREE.MeshStandardMaterial({
             map: diffuseMap,
             normalMap: normalMap,
@@ -1114,267 +1129,494 @@ export default class TextureGenerator {
             side: options.doubleSided ? THREE.DoubleSide : THREE.FrontSide
         });
         
-        // Cache the material
-        this.textureCache[cacheKey] = material;
+        // Custom material properties based on type
+        switch (type) {
+            case 'floor':
+                // Floor-specific settings
+                material.receiveShadow = true;
+                break;
+            case 'wall':
+                // Wall-specific settings
+                material.castShadow = true;
+                material.receiveShadow = true;
+                break;
+            case 'bunker':
+                // Bunker-specific settings
+                material.castShadow = true;
+                break;
+            case 'inflatable':
+                // Inflatable-specific settings
+                material.castShadow = true;
+                break;
+            case 'barrel':
+                // Barrel-specific settings
+                material.castShadow = true;
+                break;
+        }
         
         return material;
     }
     
-    // Helper methods for the advanced material creation
-    drawPaintballFloorHeightMap(ctx, width, height) {
-        // Create height variations for normal map generation
-        ctx.fillStyle = '#000000';
-        ctx.fillRect(0, 0, width, height);
+    /**
+     * Creates a height map for floor normal map generation
+     * @param {number} width - Width of height map
+     * @param {number} height - Height of height map
+     * @returns {HTMLCanvasElement} Height map canvas
+     */
+    createFloorHeightMap(width, height) {
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const context = canvas.getContext('2d');
+
+        // Base color (mid-level gray)
+        context.fillStyle = '#808080';
+        context.fillRect(0, 0, width, height);
         
-        // Draw grid lines as slight elevations
-        ctx.fillStyle = '#333333';
-        const gridSize = 64;
+        // Add grid lines (slightly raised)
+        this.drawFloorGridHeightMap(context, width, height);
+        
+        // Add wear patterns (depressions in the floor)
+        this.addFloorWearHeightMap(context, width, height);
+        
+        // Add subtle noise for micro-detail
+        this.addHeightMapNoise(context, width, height, 0.05);
+        
+        return canvas;
+    }
+    
+    /**
+     * Draw grid lines on floor height map
+     * @param {CanvasRenderingContext2D} context - Canvas context
+     * @param {number} width - Canvas width
+     * @param {number} height - Canvas height 
+     */
+    drawFloorGridHeightMap(context, width, height) {
+        // Grid size - match the actual texture
+        const gridSize = width / 32;
+        
+        // Draw grid lines (slightly raised - light gray)
+        context.strokeStyle = '#a0a0a0';
+        context.lineWidth = 2;
         
         // Horizontal grid lines
         for (let y = 0; y < height; y += gridSize) {
-            ctx.fillRect(0, y, width, 2);
+            context.beginPath();
+            context.moveTo(0, y);
+            context.lineTo(width, y);
+            context.stroke();
         }
         
         // Vertical grid lines
         for (let x = 0; x < width; x += gridSize) {
-            ctx.fillRect(x, 0, 2, height);
+            context.beginPath();
+            context.moveTo(x, 0);
+            context.lineTo(x, height);
+            context.stroke();
         }
         
-        // Add random height variations
-        for (let i = 0; i < 200; i++) {
+        // Draw field boundary lines (more raised - lighter gray)
+        context.strokeStyle = '#c0c0c0';
+        context.lineWidth = 6;
+        
+        // Main boundary
+        const margin = width * 0.05;
+        context.strokeRect(margin, margin, width - margin * 2, height - margin * 2);
+        
+        // Center line
+        context.beginPath();
+        context.moveTo(width / 2, margin);
+        context.lineTo(width / 2, height - margin);
+        context.stroke();
+        
+        // Center circle
+        context.beginPath();
+        context.arc(width / 2, height / 2, width * 0.05, 0, Math.PI * 2);
+        context.stroke();
+    }
+    
+    /**
+     * Add worn areas to floor height map
+     * @param {CanvasRenderingContext2D} context - Canvas context
+     * @param {number} width - Canvas width
+     * @param {number} height - Canvas height
+     */
+    addFloorWearHeightMap(context, width, height) {
+        // Add general wear areas (depressions - darker gray)
+        for (let i = 0; i < 25; i++) {
             const x = Math.random() * width;
             const y = Math.random() * height;
-            const radius = 10 + Math.random() * 30;
+            const radius = width * 0.02 + Math.random() * width * 0.04;
+            
+            const gradient = context.createRadialGradient(x, y, 0, x, y, radius);
+            gradient.addColorStop(0, '#505050'); // Darker = depression
+            gradient.addColorStop(0.6, '#606060');
+            gradient.addColorStop(1, '#808080'); // Back to neutral
+            
+            context.fillStyle = gradient;
+            context.beginPath();
+            context.arc(x, y, radius, 0, Math.PI * 2);
+            context.fill();
+        }
+        
+        // Center field - heavily worn area
+        const centerGradient = context.createRadialGradient(
+            width / 2, height / 2, 0, 
+            width / 2, height / 2, width * 0.08
+        );
+        centerGradient.addColorStop(0, '#505050'); // Very dark = deep depression
+        centerGradient.addColorStop(0.7, '#707070');
+        centerGradient.addColorStop(1, '#808080'); // Back to neutral
+        
+        context.fillStyle = centerGradient;
+        context.beginPath();
+        context.arc(width / 2, height / 2, width * 0.08, 0, Math.PI * 2);
+        context.fill();
+    }
+    
+    /**
+     * Adds noise to the height map for micro-detail
+     * @param {CanvasRenderingContext2D} context - Canvas context
+     * @param {number} width - Canvas width
+     * @param {number} height - Canvas height
+     * @param {number} intensity - Noise intensity
+     */
+    addHeightMapNoise(context, width, height, intensity = 0.1) {
+        // Get the image data to manipulate directly
+        const imageData = context.getImageData(0, 0, width, height);
+        const data = imageData.data;
+        
+        // Add random noise to each pixel
+        for (let i = 0; i < data.length; i += 4) {
+            // Add small random value to each pixel
+            const noise = Math.floor((Math.random() - 0.5) * intensity * 255);
+            
+            // Add noise to R, G, and B channels (they're all the same in grayscale)
+            data[i] = Math.min(255, Math.max(0, data[i] + noise));
+            data[i + 1] = Math.min(255, Math.max(0, data[i + 1] + noise));
+            data[i + 2] = Math.min(255, Math.max(0, data[i + 2] + noise));
+            // Alpha stays the same
+        }
+        
+        // Put the modified image data back
+        context.putImageData(imageData, 0, 0);
+    }
+
+    /**
+     * Creates a height map for wall normal map generation
+     * @param {number} width - Width of height map
+     * @param {number} height - Height of height map
+     * @returns {HTMLCanvasElement} Height map canvas
+     */
+    createWallHeightMap(width, height) {
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+
+        // Base color (mid-level gray)
+        ctx.fillStyle = '#808080';
+        ctx.fillRect(0, 0, width, height);
+        
+        // Add panel grid pattern for height variations
+        this.drawWallPanelHeightMap(ctx, width, height);
+        
+        // Add reinforcement beams
+        this.drawWallReinforcementHeightMap(ctx, width, height);
+        
+        // Add fasteners/bolts as raised elements
+        this.addWallFastenersHeightMap(ctx, width, height);
+        
+        // Add surface damage and wear
+        this.addWallDamageHeightMap(ctx, width, height);
+        
+        // Add subtle noise for surface grain
+        this.addHeightMapNoise(ctx, width, height, 0.03);
+        
+        return canvas;
+    }
+    
+    /**
+     * Draw panel structure in the wall height map
+     * @param {CanvasRenderingContext2D} ctx - Canvas context
+     * @param {number} width - Canvas width
+     * @param {number} height - Canvas height 
+     */
+    drawWallPanelHeightMap(ctx, width, height) {
+        // Panel size - match the actual texture dimensions
+        const panelWidth = width / 4;
+        const panelHeight = height / 3;
+        
+        // Draw slightly recessed panel areas
+        for (let y = 0; y < height; y += panelHeight) {
+            for (let x = 0; x < width; x += panelWidth) {
+                // Panel interior (slightly recessed)
+                ctx.fillStyle = '#787878';
+                ctx.fillRect(
+                    x + 10, 
+                    y + 10, 
+                    panelWidth - 20, 
+                    panelHeight - 20
+                );
+                
+                // Panel edges (raised framing)
+                ctx.fillStyle = '#909090';
+                
+                // Horizontal panel edges
+                ctx.fillRect(x, y, panelWidth, 10);
+                ctx.fillRect(x, y + panelHeight - 10, panelWidth, 10);
+                
+                // Vertical panel edges
+                ctx.fillRect(x, y, 10, panelHeight);
+                ctx.fillRect(x + panelWidth - 10, y, 10, panelHeight);
+            }
+        }
+    }
+    
+    /**
+     * Generates a wall texture
+     * @returns {THREE.Texture} The wall texture
+     */
+    generateWallTexture() {
+        // Use our better canvas-based texture instead of loading from file
+        return this.generateCanvasWallTexture();
+        
+        /* Original code - commented out to use our canvas texture
+        const texture = new THREE.TextureLoader().load('/src/assets/textures/realistic_wall.jpg');
+        texture.wrapS = THREE.RepeatWrapping;
+        texture.wrapT = THREE.RepeatWrapping;
+        texture.repeat.set(10, 10);
+        return texture;
+        */
+    }
+    
+    /**
+     * Draw reinforcement beams in the wall height map
+     * @param {CanvasRenderingContext2D} ctx - Canvas context
+     * @param {number} width - Canvas width
+     * @param {number} height - Canvas height
+     */
+    drawWallReinforcementHeightMap(ctx, width, height) {
+        // Add horizontal reinforcement beams (raised)
+        const beamHeight = height * 0.05;
+        const beamPositions = [height * 0.25, height * 0.75];
+        
+        ctx.fillStyle = '#a0a0a0';
+        for (const y of beamPositions) {
+            ctx.fillRect(0, y - beamHeight/2, width, beamHeight);
+        }
+        
+        // Add vertical support posts (raised)
+        const postWidth = width * 0.05;
+        const postPositions = [width * 0.25, width * 0.5, width * 0.75];
+        
+        for (const x of postPositions) {
+            ctx.fillRect(x - postWidth/2, 0, postWidth, height);
+        }
+        
+        // Add raised edge at corners where beams and posts intersect
+        ctx.fillStyle = '#b0b0b0';
+        const cornerSize = Math.min(beamHeight, postWidth) * 1.2;
+        
+        for (const y of beamPositions) {
+            for (const x of postPositions) {
+                ctx.beginPath();
+                ctx.arc(x, y, cornerSize/2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+    }
+    
+    /**
+     * Add fasteners/bolts to the wall height map
+     * @param {CanvasRenderingContext2D} ctx - Canvas context
+     * @param {number} width - Canvas width
+     * @param {number} height - Canvas height
+     */
+    addWallFastenersHeightMap(ctx, width, height) {
+        const panelWidth = width / 4;
+        const panelHeight = height / 3;
+        
+        // Add bolts at panel corners and intersections
+        ctx.fillStyle = '#c0c0c0';
+        
+        for (let y = 0; y <= height; y += panelHeight) {
+            for (let x = 0; x <= width; x += panelWidth) {
+                // Don't add bolts exactly at the edges of the texture
+                if ((x > 0 && x < width) || (y > 0 && y < height)) {
+                    // Draw a raised bolt
+                    ctx.beginPath();
+                    ctx.arc(x, y, width * 0.01, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // Add highlight to bolt (extra raised)
+                    ctx.fillStyle = '#e0e0e0';
+                    ctx.beginPath();
+                    ctx.arc(x, y, width * 0.005, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = '#c0c0c0';
+                }
+            }
+        }
+        
+        // Add some bolts along reinforcement beams
+        const beamPositions = [height * 0.25, height * 0.75];
+        for (const y of beamPositions) {
+            for (let x = width * 0.125; x < width; x += width * 0.125) {
+                ctx.beginPath();
+                ctx.arc(x, y, width * 0.008, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+    }
+    
+    /**
+     * Add surface damage and wear to the wall height map
+     * @param {CanvasRenderingContext2D} ctx - Canvas context
+     * @param {number} width - Canvas width
+     * @param {number} height - Canvas height
+     */
+    addWallDamageHeightMap(ctx, width, height) {
+        // Add dents (depressions in the wall)
+        for (let i = 0; i < 20; i++) {
+            const x = Math.random() * width;
+            const y = Math.random() * height;
+            const radius = width * 0.01 + Math.random() * width * 0.03;
+            
             const gradient = ctx.createRadialGradient(x, y, 0, x, y, radius);
-            gradient.addColorStop(0, '#ffffff');
-            gradient.addColorStop(1, '#000000');
+            gradient.addColorStop(0, '#505050'); // Darker = depression
+            gradient.addColorStop(0.6, '#606060');
+            gradient.addColorStop(1, '#808080'); // Back to neutral
+            
             ctx.fillStyle = gradient;
             ctx.beginPath();
             ctx.arc(x, y, radius, 0, Math.PI * 2);
             ctx.fill();
         }
-    }
-    
-    drawPaintballFloorDiffuseMap(ctx, width, height) {
-        // Simply use our existing floor texture method
-        ctx.fillStyle = '#1a8e3c'; // Base green
-        ctx.fillRect(0, 0, width, height);
         
-        // Add texture variations
-        this.addNoiseTexture(ctx, width, height, '#178438', 0.2);
-        this.drawFieldGridPattern(ctx, width, height);
-        this.addWornAreas(ctx, width, height);
-        this.addFieldMarkings(ctx, width, height);
-        this.addDirtPatches(ctx, width, height);
-        this.addRandomPaintSplatters(ctx, width, height);
-    }
-    
-    drawPaintballWallHeightMap(ctx, width, height) {
-        // Create height map for wall panels
-        ctx.fillStyle = '#333333';
-        ctx.fillRect(0, 0, width, height);
+        // Add scratches (linear depressions)
+        ctx.strokeStyle = '#707070';
+        ctx.lineWidth = 2;
         
-        // Add panel divisions as height changes
-        ctx.fillStyle = '#666666';
-        for (let y = 0; y < height; y += 256) {
-            for (let x = 0; x < width; x += 256) {
-                ctx.fillRect(x, y, 256, 256);
-                
-                // Panel edges
-                ctx.fillStyle = '#999999';
-                ctx.fillRect(x, y, 256, 4);
-                ctx.fillRect(x, y, 4, 256);
-                ctx.fillRect(x + 252, y, 4, 256);
-                ctx.fillRect(x, y + 252, 256, 4);
-                
-                // Reset fill for next panel
-                ctx.fillStyle = '#666666';
-            }
-        }
-        
-        // Add bolt/fastener bumps
-        for (let y = 0; y < height; y += 256) {
-            for (let x = 0; x < width; x += 256) {
-                // Four corner bolts for each panel
-                ctx.fillStyle = '#ffffff';
-                ctx.beginPath();
-                ctx.arc(x + 12, y + 12, 6, 0, Math.PI * 2);
-                ctx.fill();
-                
-                ctx.beginPath();
-                ctx.arc(x + 244, y + 12, 6, 0, Math.PI * 2);
-                ctx.fill();
-                
-                ctx.beginPath();
-                ctx.arc(x + 12, y + 244, 6, 0, Math.PI * 2);
-                ctx.fill();
-                
-                ctx.beginPath();
-                ctx.arc(x + 244, y + 244, 6, 0, Math.PI * 2);
-                ctx.fill();
-            }
-        }
-    }
-    
-    drawPaintballWallDiffuseMap(ctx, width, height) {
-        // Create wall panel texture
-        // Base panel color
-        ctx.fillStyle = '#dddddd'; // Light gray
-        ctx.fillRect(0, 0, width, height);
-        
-        // Add subtle panel noise
-        for (let x = 0; x < width; x += 4) {
-            for (let y = 0; y < height; y += 4) {
-                if (Math.random() > 0.5) {
-                    const shade = Math.floor(Math.random() * 10);
-                    ctx.fillStyle = `rgba(200, 200, 200, ${shade / 10})`;
-                    ctx.fillRect(x, y, 4, 4);
-                }
-            }
-        }
-        
-        // Create panel sections
-        ctx.strokeStyle = '#a0a0a0'; // Medium gray for panel lines
-        ctx.lineWidth = 4;
-        
-        // Draw panel grid
-        for (let y = 0; y < height; y += 256) {
-            for (let x = 0; x < width; x += 256) {
-                ctx.strokeRect(x, y, 256, 256);
-                
-                // Add bolt details at panel corners
-                this.drawBoltDetail(ctx, x + 12, y + 12);
-                this.drawBoltDetail(ctx, x + 244, y + 12);
-                this.drawBoltDetail(ctx, x + 12, y + 244);
-                this.drawBoltDetail(ctx, x + 244, y + 244);
-            }
-        }
-        
-        // Add some scuff marks and wear
-        for (let x = 0; x < width; x += 40) {
-            const scuffHeight = Math.random() * 30 + 10;
-            const shade = Math.floor(Math.random() * 60) + 160;
-            ctx.fillStyle = `rgba(${shade}, ${shade}, ${shade}, 0.3)`;
-            ctx.fillRect(x, height - scuffHeight, 40, scuffHeight);
-        }
-        
-        // Add warning stripes on some panels
-        if (Math.random() < 0.3) {
-            const stripeY = Math.floor(Math.random() * 3) * 256 + 100;
-            this.drawWarningStripes(ctx, 0, stripeY, width, 30);
-        }
-        
-        // Add paint splatters
-        this.addPaintSplattersToContext(ctx, width, height, 15, 0.2, true);
-    }
-    
-    // Color manipulation helpers
-    colorToRgb(color) {
-        if (typeof color === 'string') {
-            // Handle string hex format like '#ff0000' or 'ff0000'
-            const hex = color.replace('#', '');
-            const r = parseInt(hex.substring(0, 2), 16);
-            const g = parseInt(hex.substring(2, 4), 16);
-            const b = parseInt(hex.substring(4, 6), 16);
+        for (let i = 0; i < 15; i++) {
+            const x1 = Math.random() * width;
+            const y1 = Math.random() * height;
+            const length = width * 0.05 + Math.random() * width * 0.15;
+            const angle = Math.random() * Math.PI * 2;
             
-            return { r, g, b };
-        } else if (typeof color === 'number') {
-            // Handle numeric format like 0xff0000
-            const r = (color >> 16) & 255;
-            const g = (color >> 8) & 255;
-            const b = color & 255;
+            const x2 = x1 + Math.cos(angle) * length;
+            const y2 = y1 + Math.sin(angle) * length;
             
-            return { r, g, b };
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
         }
         
-        // Default fallback to black if invalid color
-        console.warn('Invalid color format:', color);
-        return { r: 0, g: 0, b: 0 };
+        // Add wear areas near the bottom of the wall
+        const wearGradient = ctx.createLinearGradient(0, height * 0.7, 0, height);
+        wearGradient.addColorStop(0, '#808080'); // Normal height
+        wearGradient.addColorStop(1, '#707070'); // Worn down at bottom
+        
+        ctx.fillStyle = wearGradient;
+        ctx.fillRect(0, height * 0.7, width, height * 0.3);
     }
     
-    // Convert RGB components to hex string
-    rgbToHex(r, g, b) {
-        return `#${Math.round(r).toString(16).padStart(2, '0')}${Math.round(g).toString(16).padStart(2, '0')}${Math.round(b).toString(16).padStart(2, '0')}`;
+    /**
+     * Convert hex color to RGB values
+     * @param {string} hex - Hex color code 
+     * @returns {string} RGB values as comma-separated string
+     */
+    hexToRgb(hex) {
+        // Remove # if present
+        hex = hex.replace('#', '');
+        
+        // Parse hex values to RGB
+        const r = parseInt(hex.substring(0, 2), 16);
+        const g = parseInt(hex.substring(2, 4), 16);
+        const b = parseInt(hex.substring(4, 6), 16);
+        
+        return `${r}, ${g}, ${b}`;
     }
     
     drawBoltDetail(context, x, y) {
-        // Add a bolt/fastener at the specified position
-        const boltSize = 6;
-        
-        // Draw bolt head
-        context.fillStyle = '#999999';
+        // Draw a small circle for the bolt head
         context.beginPath();
-        context.arc(x, y, boltSize, 0, Math.PI * 2);
+        context.arc(x, y, 4, 0, Math.PI * 2);
+        context.fillStyle = '#c0c0c0';
         context.fill();
         
-        // Add highlight
-        context.fillStyle = 'rgba(255, 255, 255, 0.5)';
+        // Add a small line for the bolt head detail
         context.beginPath();
-        context.arc(x - boltSize/4, y - boltSize/4, boltSize/3, 0, Math.PI * 2);
-        context.fill();
-        
-        // Add bolt detail lines
-        context.strokeStyle = '#777777';
+        context.moveTo(x - 2, y - 2);
+        context.lineTo(x + 2, y + 2);
+        context.strokeStyle = '#a0a0a0';
         context.lineWidth = 1;
-        
-        // Cross pattern on bolt
-        context.beginPath();
-        context.moveTo(x - boltSize/2, y);
-        context.lineTo(x + boltSize/2, y);
-        context.moveTo(x, y - boltSize/2);
-        context.lineTo(x, y + boltSize/2);
         context.stroke();
     }
     
     drawWarningStripes(context, x, y, width, height) {
-        // Draw black and yellow warning stripes (like industrial caution tape)
-        const stripeWidth = 20;
-        context.save();
-        
-        // Add a background for the warning stripe
-        context.fillStyle = '#000000';
-        context.fillRect(x, y, width, height);
-        
-        // Draw the diagonal stripes
-        context.fillStyle = '#FFCC00'; // Warning yellow
-        for (let sx = -height*2; sx < width + height*2; sx += stripeWidth * 2) {
-            context.beginPath();
-            context.moveTo(sx, y);
-            context.lineTo(sx + height, y + height);
-            context.lineTo(sx + height + stripeWidth, y + height);
-            context.lineTo(sx + stripeWidth, y);
-            context.closePath();
-            context.fill();
+        // Draw warning stripes
+        context.fillStyle = '#ff0000';
+        for (let i = 0; i < 5; i++) {
+            const stripeY = y + i * (height / 5);
+            context.fillRect(x, stripeY, width, height / 10);
+        }
+    }
+    
+    lightenColor(color, amount) {
+        // Handle non-string input or invalid color format
+        if (!color || typeof color !== 'string' || !color.startsWith('#')) {
+            // Return a default gray color if input is invalid
+            return '#808080';
         }
         
-        context.restore();
+        let hex = color.replace('#', '');
+        let r = parseInt(hex.substring(0, 2), 16);
+        let g = parseInt(hex.substring(2, 4), 16);
+        let b = parseInt(hex.substring(4, 6), 16);
+        
+        r = Math.min(255, r + amount);
+        g = Math.min(255, g + amount);
+        b = Math.min(255, b + amount);
+        
+        return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
     }
     
-    lightenColor(color, percent) {
-        const { r, g, b } = this.colorToRgb(color);
-        
-        const newR = Math.min(255, r + (percent / 100) * 255);
-        const newG = Math.min(255, g + (percent / 100) * 255);
-        const newB = Math.min(255, b + (percent / 100) * 255);
-        
-        return this.rgbToHex(newR, newG, newB);
-    }
-    
-    darkenColor(color, percent) {
-        const { r, g, b } = this.colorToRgb(color);
-        
-        const newR = Math.max(0, r - (percent / 100) * 255);
-        const newG = Math.max(0, g - (percent / 100) * 255);
-        const newB = Math.max(0, b - (percent / 100) * 255);
-        
-        return this.rgbToHex(newR, newG, newB);
-    }
-    
-    adjustBrightness(color, percent) {
-        if (percent < 0) {
-            return this.darkenColor(color, -percent);
-        } else {
-            return this.lightenColor(color, percent);
+    darkenColor(color, amount) {
+        if (typeof color !== 'string') {
+            // Return a default gray color if input is invalid
+            return '#808080';
         }
+        
+        let hex = color.replace('#', '');
+        let r = parseInt(hex.substring(0, 2), 16);
+        let g = parseInt(hex.substring(2, 4), 16);
+        let b = parseInt(hex.substring(4, 6), 16);
+        
+        r = Math.max(0, r - amount);
+        g = Math.max(0, g - amount);
+        b = Math.max(0, b - amount);
+        
+        return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+    }
+    
+    adjustBrightness(color, amount) {
+        // Handle non-string input or invalid color format
+        if (!color || typeof color !== 'string' || !color.startsWith('#')) {
+            // Return a default gray color if input is invalid
+            return '#808080';
+        }
+        
+        let hex = color.replace('#', '');
+        let r = parseInt(hex.substring(0, 2), 16);
+        let g = parseInt(hex.substring(2, 4), 16);
+        let b = parseInt(hex.substring(4, 6), 16);
+        
+        r = Math.max(0, Math.min(255, r + amount));
+        g = Math.max(0, Math.min(255, g + amount));
+        b = Math.max(0, Math.min(255, b + amount));
+        
+        return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
     }
 }
