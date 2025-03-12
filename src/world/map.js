@@ -27,15 +27,42 @@ export default class GameMap {
   loadTextures() {
     this.textures = {};
     
-    // Try to load image textures first, but use generated ones if they fail
+    // Use enhanced paintball-specific materials with normal maps for better visual quality
     try {
-      // Try to load image-based textures
+      // Generate optimized textures with normal maps
       this.textures.wall = this.textureGenerator.generateWallTexture();
       this.textures.floor = this.textureGenerator.generateFloorTexture();
       this.textures.bunker = this.textureGenerator.generateBunkerTexture();
       this.textures.inflatable = this.textureGenerator.generateInflatableTexture();
       this.textures.barrel = this.textureGenerator.generateBarrelTexture();
-      console.log('Image-based textures loaded successfully');
+      
+      // Create advanced materials (with optional normal maps) for key objects
+      this.materials = {};
+      
+      // If advanced material generation is available, use it
+      if (typeof this.textureGenerator.createPaintballMaterial === 'function') {
+        try {
+          // Advanced material for floor with normal mapping
+          this.materials.floor = this.textureGenerator.createPaintballMaterial('floor', {
+            roughness: 0.9,
+            metalness: 0.1,
+            doubleSided: true
+          });
+          
+          // Advanced material for walls with normal mapping
+          this.materials.wall = this.textureGenerator.createPaintballMaterial('wall', {
+            roughness: 0.7,
+            metalness: 0.3,
+            doubleSided: false
+          });
+          
+          console.log('Enhanced materials with normal maps created successfully');
+        } catch (e) {
+          console.warn('Could not create enhanced materials, falling back to basic textures', e);
+        }
+      }
+      
+      console.log('Paintball arena textures loaded successfully');
     } catch (e) {
       console.warn('Could not load image textures, generating canvas textures', e);
       // Use canvas-generated textures as fallback
@@ -68,11 +95,16 @@ export default class GameMap {
   }
 
   createMap() {
-    // Create the arena floor first (so other objects sit on top of it)
+    console.log('Creating paintball arena map...');
+    
+    // Create arena floor
     this.createArenaFloor();
     
-    // Create the arena boundaries
+    // Create arena boundaries
     this.createBoundaryWalls();
+    
+    /*
+    // --- TEMPORARILY DISABLED ALL OBSTACLES ---
     
     // Create field divider
     this.createFieldDivider();
@@ -82,37 +114,45 @@ export default class GameMap {
     
     // Add paintball obstacles (bunkers, barrels, inflatables)
     this.createObstacles();
+    */
     
-    console.log('Competitive paintball arena created');
+    console.log('Paintball arena map created successfully');
   }
   
   createArenaFloor() {
     // Create a large floor plane for the arena
     const floorGeometry = new THREE.PlaneGeometry(100, 100);
     
-    // Use a detailed floor texture with proper tiling
-    const floorMaterial = new THREE.MeshStandardMaterial({
-      map: this.textures.floor,
-      roughness: 0.9,
-      metalness: 0.1,
-      side: THREE.DoubleSide
-    });
+    let floorMaterial;
     
-    // Set texture properties for optimal performance and visual quality
-    if (this.textures.floor) {
-      this.textures.floor.wrapS = THREE.RepeatWrapping;
-      this.textures.floor.wrapT = THREE.RepeatWrapping;
-      this.textures.floor.repeat.set(10, 10); // More tiling for the large floor
+    // Use enhanced material with normal maps if available, otherwise fall back to standard material
+    if (this.materials && this.materials.floor) {
+      // Use our pre-configured enhanced material with normal maps
+      floorMaterial = this.materials.floor;
+      console.log('Using enhanced floor material with normal maps');
+    } else {
+      // Use a detailed floor texture with proper tiling
+      floorMaterial = new THREE.MeshStandardMaterial({
+        map: this.textures.floor,
+        roughness: 0.9,
+        metalness: 0.1,
+        side: THREE.DoubleSide
+      });
       
-      // Enable mipmapping to prevent texture shimmer at a distance
-      this.textures.floor.generateMipmaps = true;
-      this.textures.floor.minFilter = THREE.LinearMipMapLinearFilter;
-      this.textures.floor.magFilter = THREE.LinearFilter;
-      
-      // Set anisotropy for sharper textures at glancing angles
-      // This helps reduce texture shimmering when viewed at an angle
-      const maxAnisotropy = this.renderer.capabilities.getMaxAnisotropy();
-      this.textures.floor.anisotropy = maxAnisotropy;
+      // Set texture properties for optimal performance and visual quality
+      if (this.textures.floor) {
+        // The texture is already configured with repeat settings in the TextureGenerator
+        // Do not modify the repeat values here to avoid duplication issues
+        
+        // Enable mipmapping to prevent texture shimmer at a distance
+        this.textures.floor.generateMipmaps = true;
+        this.textures.floor.minFilter = THREE.LinearMipMapLinearFilter;
+        this.textures.floor.magFilter = THREE.LinearFilter;
+        
+        // Set anisotropy for sharper textures at glancing angles
+        const maxAnisotropy = this.renderer.capabilities.getMaxAnisotropy();
+        this.textures.floor.anisotropy = maxAnisotropy;
+      }
     }
     
     const floor = new THREE.Mesh(floorGeometry, floorMaterial);
@@ -133,6 +173,9 @@ export default class GameMap {
       friction: 0.8     // Higher friction for player movement
     };
     
+    // Store reference to the floor for potential future use
+    this.arenaFloor = floor;
+    
     // Add to scene
     this.scene.add(floor);
     
@@ -151,30 +194,135 @@ export default class GameMap {
       isFloor: true,
       isStatic: true,
       name: 'floor',
-      id: 'arena_floor_physics',
-      type: 'ground'
+      id: 'arena_floor',
+      type: 'ground',
+      meshRef: floor    // Reference to the visual mesh
     };
+    
+    // Store reference to the physics body
+    this.arenaFloorBody = floorBody;
+    
+    // Cross-reference between mesh and physics body
+    floor.userData.bodyRef = floorBody;
     
     // Add to physics world
     this.physicsWorld.addBody(floorBody);
-    
-    // Create floor-body reference pair for easier access
-    this.arenaFloor = {
-      mesh: floor,
-      body: floorBody
-    };
-    
-    console.log('Arena floor created with enhanced properties for paint splatter detection');
     
     return floor;
   }
   
   createBoundaryWalls() {
-    // Perimeter walls
-    this.createWall(0, 5, -40, 80, 10, 1, this.textures.wall, false); // Front wall
-    this.createWall(0, 5, 40, 80, 10, 1, this.textures.wall, false); // Back wall
-    this.createWall(-40, 5, 0, 1, 10, 80, this.textures.wall, false); // Left wall
-    this.createWall(40, 5, 0, 1, 10, 80, this.textures.wall, false); // Right wall
+    const wallHeight = 4; // Height of arena walls
+    const wallThickness = 0.5; // Thickness of walls
+    const arenaWidth = 60; // Width of the arena
+    const arenaLength = 60; // Length of the arena
+    
+    // Use advanced wall material if available, otherwise use basic texture
+    let wallMaterial;
+    if (this.materials && this.materials.wall) {
+      wallMaterial = this.materials.wall;
+      console.log('Using enhanced wall material with normal maps');
+    } else {
+      wallMaterial = new THREE.MeshStandardMaterial({
+        map: this.textures.wall,
+        roughness: 0.7,
+        metalness: 0.3
+      });
+    }
+    
+    // Create four walls to enclose the arena
+    const walls = [
+      // North wall (back wall from red team perspective)
+      { 
+        position: new THREE.Vector3(0, wallHeight / 2, -arenaLength / 2),
+        size: new THREE.Vector3(arenaWidth + wallThickness, wallHeight, wallThickness),
+        rotation: new THREE.Euler(0, 0, 0),
+        physicPos: new Vec3(0, wallHeight / 2, -arenaLength / 2),
+        physicSize: new Vec3((arenaWidth + wallThickness) / 2, wallHeight / 2, wallThickness / 2)
+      },
+      // South wall (back wall from blue team perspective)
+      {
+        position: new THREE.Vector3(0, wallHeight / 2, arenaLength / 2),
+        size: new THREE.Vector3(arenaWidth + wallThickness, wallHeight, wallThickness),
+        rotation: new THREE.Euler(0, 0, 0),
+        physicPos: new Vec3(0, wallHeight / 2, arenaLength / 2),
+        physicSize: new Vec3((arenaWidth + wallThickness) / 2, wallHeight / 2, wallThickness / 2)
+      },
+      // East wall
+      {
+        position: new THREE.Vector3(arenaWidth / 2, wallHeight / 2, 0),
+        size: new THREE.Vector3(wallThickness, wallHeight, arenaLength),
+        rotation: new THREE.Euler(0, 0, 0),
+        physicPos: new Vec3(arenaWidth / 2, wallHeight / 2, 0),
+        physicSize: new Vec3(wallThickness / 2, wallHeight / 2, arenaLength / 2)
+      },
+      // West wall
+      {
+        position: new THREE.Vector3(-arenaWidth / 2, wallHeight / 2, 0),
+        size: new THREE.Vector3(wallThickness, wallHeight, arenaLength),
+        rotation: new THREE.Euler(0, 0, 0),
+        physicPos: new Vec3(-arenaWidth / 2, wallHeight / 2, 0),
+        physicSize: new Vec3(wallThickness / 2, wallHeight / 2, arenaLength / 2)
+      }
+    ];
+    
+    // Create all arena walls
+    walls.forEach((wallConfig, index) => {
+      // Create mesh
+      const wallGeometry = new THREE.BoxGeometry(
+        wallConfig.size.x, 
+        wallConfig.size.y, 
+        wallConfig.size.z
+      );
+      
+      const wall = new THREE.Mesh(wallGeometry, wallMaterial);
+      
+      // Position wall
+      wall.position.copy(wallConfig.position);
+      wall.rotation.copy(wallConfig.rotation);
+      wall.castShadow = true;
+      wall.receiveShadow = true;
+      
+      // Add metadata for game logic and collision detection
+      wall.userData = {
+        isWall: true,
+        isStatic: true,
+        name: `arena_wall_${index}`,
+        id: `arena_wall_${index}`,
+        type: 'boundary_wall'
+      };
+      
+      // Add to scene
+      this.scene.add(wall);
+      
+      // Create physics body
+      const wallShape = new Box(wallConfig.physicSize);
+      const wallBody = new Body({
+        mass: 0, // Static body
+        position: wallConfig.physicPos,
+        type: Body.STATIC
+      });
+      
+      wallBody.addShape(wallShape);
+      
+      // Add matching userData to the physics body for consistency
+      wallBody.userData = {
+        isWall: true,
+        isStatic: true,
+        name: `arena_wall_${index}`,
+        id: `arena_wall_${index}_physics`,
+        type: 'boundary_wall',
+        meshRef: wall
+      };
+      
+      // Cross-reference between mesh and physics body
+      wall.userData.bodyRef = wallBody;
+      
+      // Add to physics world
+      this.physicsWorld.addBody(wallBody);
+    });
+    
+    console.log('Arena boundary walls created');
   }
   
   createFieldDivider() {

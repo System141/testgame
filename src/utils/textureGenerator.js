@@ -743,7 +743,43 @@ export default class TextureGenerator {
         return texture;
     }
     
-    // Helper methods for texture generation
+    /**
+     * Adds noise texture to create subtle variation in the base color
+     * @param {CanvasRenderingContext2D} context - Canvas context
+     * @param {number} width - Canvas width
+     * @param {number} height - Canvas height
+     * @param {string} color - Color for the noise
+     * @param {number} opacity - Opacity of the noise
+     */
+    addNoiseTexture(context, width, height, color, opacity = 0.2) {
+        // Add subtle noise texture
+        for (let x = 0; x < width; x += 4) {
+            for (let y = 0; y < height; y += 4) {
+                if (Math.random() > 0.5) {
+                    context.fillStyle = `rgba(${this.hexToRgb(color)}, ${opacity * Math.random()})`;
+                    context.fillRect(x, y, 4, 4);
+                }
+            }
+        }
+    }
+
+    /**
+     * Convert hex color to RGB values
+     * @param {string} hex - Hex color code 
+     * @returns {string} RGB values as comma-separated string
+     */
+    hexToRgb(hex) {
+        // Remove # if present
+        hex = hex.replace('#', '');
+        
+        // Parse hex values to RGB
+        const r = parseInt(hex.substring(0, 2), 16);
+        const g = parseInt(hex.substring(2, 4), 16);
+        const b = parseInt(hex.substring(4, 6), 16);
+        
+        return `${r}, ${g}, ${b}`;
+    }
+    
     drawPaintballPattern(context, width, height, color) {
         context.fillStyle = color;
         
@@ -1233,16 +1269,6 @@ export default class TextureGenerator {
     }
     
     // Color manipulation helpers
-    hexToRgb(hex) {
-        // Remove # if present
-        hex = hex.replace('#', '');
-        const r = parseInt(hex.substring(0, 2), 16);
-        const g = parseInt(hex.substring(2, 4), 16);
-        const b = parseInt(hex.substring(4, 6), 16);
-        return `${r}, ${g}, ${b}`;
-    }
-    
-    // Convert any color format to RGB components
     colorToRgb(color) {
         if (typeof color === 'string') {
             // Handle string hex format like '#ff0000' or 'ff0000'
