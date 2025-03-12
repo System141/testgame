@@ -5,10 +5,11 @@ import TextureGenerator from '/src/utils/textureGenerator.js';
 // GameMap.js - Competitive Paintball Arena
 
 export default class GameMap {
-  constructor(scene, physicsWorld) {
+  constructor(scene, physicsWorld, renderer) {
     this.scene = scene;
     this.physicsWorld = physicsWorld;
     this.textureGenerator = new TextureGenerator();
+    this.renderer = renderer;
     
     // Map colors
     this.teamColors = {
@@ -97,11 +98,21 @@ export default class GameMap {
       side: THREE.DoubleSide
     });
     
-    // Set texture repeat for tiling effect
+    // Set texture properties for optimal performance and visual quality
     if (this.textures.floor) {
       this.textures.floor.wrapS = THREE.RepeatWrapping;
       this.textures.floor.wrapT = THREE.RepeatWrapping;
       this.textures.floor.repeat.set(10, 10); // More tiling for the large floor
+      
+      // Enable mipmapping to prevent texture shimmer at a distance
+      this.textures.floor.generateMipmaps = true;
+      this.textures.floor.minFilter = THREE.LinearMipMapLinearFilter;
+      this.textures.floor.magFilter = THREE.LinearFilter;
+      
+      // Set anisotropy for sharper textures at glancing angles
+      // This helps reduce texture shimmering when viewed at an angle
+      const maxAnisotropy = this.renderer.capabilities.getMaxAnisotropy();
+      this.textures.floor.anisotropy = maxAnisotropy;
     }
     
     const floor = new THREE.Mesh(floorGeometry, floorMaterial);
@@ -110,20 +121,50 @@ export default class GameMap {
     floor.rotation.x = -Math.PI / 2; // Rotate to be horizontal
     floor.position.y = 0; // At ground level
     floor.receiveShadow = true;
-    floor.userData.isFloor = true;
     
+    // Set comprehensive userData for collision and paint splatter detection
+    floor.userData = {
+      isFloor: true,
+      isStatic: true,
+      name: 'floor',
+      id: 'arena_floor',
+      type: 'ground',
+      reflective: false, // Whether the floor should have reflection effects
+      friction: 0.8     // Higher friction for player movement
+    };
+    
+    // Add to scene
     this.scene.add(floor);
     
-    // Add a simple physics body for the floor
-    // This invisible plane prevents objects from falling through
+    // Create corresponding physics body with proper properties
+    const floorShape = new Box(new Vec3(50, 0.1, 50));
     const floorBody = new Body({
       mass: 0, // Static body
-      shape: new Box(new Vec3(50, 0.1, 50)),
-      position: new Vec3(0, -0.1, 0) // Slightly below visual floor
+      position: new Vec3(0, -0.1, 0), // Slightly below visual floor to prevent z-fighting
+      type: Body.STATIC
     });
     
-    floorBody.userData = { isFloor: true };
+    floorBody.addShape(floorShape);
+    
+    // Add matching userData to the physics body for consistency
+    floorBody.userData = { 
+      isFloor: true,
+      isStatic: true,
+      name: 'floor',
+      id: 'arena_floor_physics',
+      type: 'ground'
+    };
+    
+    // Add to physics world
     this.physicsWorld.addBody(floorBody);
+    
+    // Create floor-body reference pair for easier access
+    this.arenaFloor = {
+      mesh: floor,
+      body: floorBody
+    };
+    
+    console.log('Arena floor created with enhanced properties for paint splatter detection');
     
     return floor;
   }
@@ -160,61 +201,6 @@ export default class GameMap {
     // Add team-colored bunkers near bases
     this.createBunker(35, 1, 35, 3, 2, 3, this.textures.blueTeam);
     this.createInflatable(25, 1, 35, this.textures.blueTeam);
-  }
-  
-  createBase(x, y, z, color, texture) {
-    // Base platform with stylized team texture
-    const baseGeometry = new THREE.BoxGeometry(15, 0.2, 15);
-    
-    // Create a multi-material for the base platform
-    // Top face with texture, sides with team color
-    const materials = [
-      new THREE.MeshStandardMaterial({ color: color, roughness: 0.8, metalness: 0.2 }),  // Right side
-      new THREE.MeshStandardMaterial({ color: color, roughness: 0.8, metalness: 0.2 }),  // Left side
-      texture ? new THREE.MeshStandardMaterial({ map: texture, roughness: 0.8 }) :  // Top with texture if available
-               new THREE.MeshStandardMaterial({ color: color, roughness: 0.8, metalness: 0.2 }),
-      new THREE.MeshStandardMaterial({ color: color, roughness: 0.8, metalness: 0.2 }),  // Bottom
-      new THREE.MeshStandardMaterial({ color: color, roughness: 0.8, metalness: 0.2 }),  // Front side
-      new THREE.MeshStandardMaterial({ color: color, roughness: 0.8, metalness: 0.2 })   // Back side
-    ];
-    
-    const base = new THREE.Mesh(baseGeometry, materials);
-    base.position.set(x, y, z);
-    base.receiveShadow = true;
-    base.userData.isBase = true;
-    base.userData.teamColor = color;
-    base.userData.teamBase = true;
-    this.scene.add(base);
-    
-    // Add team flag/marker
-    this.createTeamFlag(x, y + 3, z, color);
-    
-    // No need for physics body as players can walk through it
-    // It's just a visual marker for the spawn area
-  }
-  
-  createTeamFlag(x, y, z, color) {
-    // Create flag pole
-    const poleGeometry = new THREE.CylinderGeometry(0.1, 0.1, 6, 8);
-    const poleMaterial = new THREE.MeshStandardMaterial({ color: 0x888888, metalness: 0.6 });
-    const pole = new THREE.Mesh(poleGeometry, poleMaterial);
-    pole.position.set(x, y, z);
-    pole.castShadow = true;
-    this.scene.add(pole);
-    
-    // Create flag
-    const flagGeometry = new THREE.PlaneGeometry(2, 1.5);
-    const flagMaterial = new THREE.MeshStandardMaterial({ 
-      color: color,
-      side: THREE.DoubleSide,
-      roughness: 0.8,
-      metalness: 0.1
-    });
-    const flag = new THREE.Mesh(flagGeometry, flagMaterial);
-    flag.position.set(x + 1, y + 2, z);
-    flag.rotation.y = Math.PI / 2;
-    flag.castShadow = true;
-    this.scene.add(flag);
   }
   
   createObstacles() {
@@ -828,5 +814,123 @@ export default class GameMap {
       const offsetZ2 = (Math.random() - 0.5) * 0.4;
       this.createBarrel(x + offsetX2, y + height * 2, z + offsetZ2, texture, radius, height);
     }
+  }
+  
+  createBase(x, y, z, color, texture) {
+    // Base platform with stylized team texture
+    const baseGeometry = new THREE.BoxGeometry(15, 0.2, 15);
+    
+    // Create a multi-material for the base platform
+    // Top face with texture, sides with team color
+    const materials = [
+      new THREE.MeshStandardMaterial({ color: color, roughness: 0.8, metalness: 0.2 }),  // Right side
+      new THREE.MeshStandardMaterial({ color: color, roughness: 0.8, metalness: 0.2 }),  // Left side
+      texture ? new THREE.MeshStandardMaterial({ map: texture, roughness: 0.8 }) :  // Top with texture if available
+               new THREE.MeshStandardMaterial({ color: color, roughness: 0.8, metalness: 0.2 }),
+      new THREE.MeshStandardMaterial({ color: color, roughness: 0.8, metalness: 0.2 }),  // Bottom
+      new THREE.MeshStandardMaterial({ color: color, roughness: 0.8, metalness: 0.2 }),  // Front side
+      new THREE.MeshStandardMaterial({ color: color, roughness: 0.8, metalness: 0.2 })   // Back side
+    ];
+    
+    const base = new THREE.Mesh(baseGeometry, materials);
+    base.position.set(x, y, z);
+    base.receiveShadow = true;
+    base.userData.isBase = true;
+    base.userData.teamColor = color;
+    base.userData.teamBase = true;
+    this.scene.add(base);
+    
+    // Add team flag/marker
+    this.createTeamFlag(x, y + 3, z, color);
+    
+    // No need for physics body as players can walk through it
+    // It's just a visual marker for the spawn area
+  }
+  
+  createTeamFlag(x, y, z, color) {
+    // Create flag pole
+    const poleGeometry = new THREE.CylinderGeometry(0.1, 0.1, 6, 8);
+    const poleMaterial = new THREE.MeshStandardMaterial({ color: 0x888888, metalness: 0.6 });
+    const pole = new THREE.Mesh(poleGeometry, poleMaterial);
+    pole.position.set(x, y, z);
+    pole.castShadow = true;
+    this.scene.add(pole);
+    
+    // Create flag
+    const flagGeometry = new THREE.PlaneGeometry(2, 1.5);
+    const flagMaterial = new THREE.MeshStandardMaterial({ 
+      color: color,
+      side: THREE.DoubleSide,
+      roughness: 0.8,
+      metalness: 0.1
+    });
+    const flag = new THREE.Mesh(flagGeometry, flagMaterial);
+    flag.position.set(x + 1, y + 2, z);
+    flag.rotation.y = Math.PI / 2;
+    flag.castShadow = true;
+    this.scene.add(flag);
+  }
+  
+  /**
+   * Creates a test platform specifically for testing paint splatter effects
+   * This elevated horizontal surface is perfect for testing floor/horizontal splatter effects
+   */
+  createTestPlatform() {
+    // Create a test platform near the player spawn for easy testing
+    const platformSize = { width: 10, height: 0.5, depth: 10 };
+    const platformPosition = { x: 0, y: 2, z: -10 }; // Positioned where player can easily shoot it
+    
+    // Create the visual mesh
+    const platformGeometry = new THREE.BoxGeometry(
+      platformSize.width, 
+      platformSize.height, 
+      platformSize.depth
+    );
+    
+    // Use a distinctly colored material to make it obvious for testing
+    const platformMaterial = new THREE.MeshStandardMaterial({
+      color: 0x22ff22, // Bright green to easily identify
+      roughness: 0.8,
+      metalness: 0.2
+    });
+    
+    const platformMesh = new THREE.Mesh(platformGeometry, platformMaterial);
+    platformMesh.position.set(
+      platformPosition.x,
+      platformPosition.y,
+      platformPosition.z
+    );
+    platformMesh.receiveShadow = true;
+    platformMesh.castShadow = true;
+    
+    // Important! Tag this as a floor in userData so paint splatter code knows how to handle it
+    platformMesh.userData.isFloor = true;
+    
+    this.scene.add(platformMesh);
+    
+    // Create the physics body
+    const platformBody = new Body({
+      mass: 0, // Static body
+      shape: new Box(new Vec3(
+        platformSize.width / 2,
+        platformSize.height / 2,
+        platformSize.depth / 2
+      )),
+      position: new Vec3(
+        platformPosition.x,
+        platformPosition.y,
+        platformPosition.z
+      )
+    });
+    
+    // Tag the physics body as well
+    platformBody.userData = { isFloor: true };
+    
+    // Add the physics body to the world
+    this.physicsWorld.addBody(platformBody);
+    
+    console.log('Created test platform for paint splatter testing');
+    
+    return { mesh: platformMesh, body: platformBody };
   }
 }

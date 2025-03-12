@@ -1103,8 +1103,7 @@ export default class Weapon {
                 weaponModel.position.y = this.reloadState.positionStart.y + 
                                     0.015 * Math.sin(tapPhase * Math.PI * 8);
                 // Slight side to side shake
-                weaponModel.rotation.y = this.reloadState.rotationStart.y + 
-                                    0.02 * Math.sin(tapPhase * Math.PI * 6);
+                weaponModel.rotation.y = this.reloadState.rotationStart.y + 0.02 * Math.sin(tapPhase * Math.PI * 6);
             } 
             else {
                 // Final phase: Return to original position
@@ -1506,9 +1505,12 @@ export default class Weapon {
      * Creates a paint splatter effect on impact surfaces
      * @param {THREE.Vector3} position - Impact position vector
      * @param {THREE.Vector3} normal - Surface normal vector
+     * @param {boolean} isFloor - Whether the surface is detected as a floor
      */
-    createPaintSplatter(position, normal) {
+    createPaintSplatter(position, normal, isFloor = false) {
         try {
+            console.log('Creating paint splatter at:', position, 'with normal:', normal, 'isFloor:', isFloor);
+            
             // Initialize texture cache for better performance
             if (!this.splatterTextures) {
                 this.splatterTextures = [];
@@ -1530,6 +1532,7 @@ export default class Weapon {
 
             // Create or reuse common splatter geometry
             if (!this.cachedSplatterGeometry) {
+                // Using a PlaneGeometry for the splatter
                 this.cachedSplatterGeometry = new THREE.PlaneGeometry(0.5, 0.5);
             }
             
@@ -1551,25 +1554,24 @@ export default class Weapon {
             if (!this.splatterMaterials[colorKey]) {
                 this.splatterMaterials[colorKey] = new THREE.MeshBasicMaterial({
                     map: closestTexture,
-                    color: weaponColor,
-                    side: THREE.DoubleSide,
+                    color: weaponColor,  // Tint the material with the paintball color
                     transparent: true,
                     opacity: 0.9,
                     depthWrite: false, // Improves rendering performance for transparents
-                    blending: THREE.NormalBlending
+                    blending: THREE.NormalBlending,
+                    side: THREE.DoubleSide
                 });
             }
             
             // Create new mesh using shared geometry and appropriate material
-            const splatter = new THREE.Mesh(this.cachedSplatterGeometry, this.splatterMaterials[colorKey]);
+            const splatter = new THREE.Mesh(this.cachedSplatterGeometry, this.splatterMaterials[colorKey].clone());
             splatter.name = 'paintSplatter';
             
             // Position slightly offset from surface to prevent z-fighting
             splatter.position.copy(position);
-            splatter.position.add(normal.clone().multiplyScalar(0.01));
             
-            // Optimize rotation calculation
-            this.orientSplatterMesh(splatter, position, normal);
+            // Orient the splatter to align with the surface
+            this.orientSplatterMesh(splatter, position, normal, isFloor);
             
             // Add random scale variation for visual variety
             const scale = 0.2 + Math.random() * 0.4;
@@ -1598,57 +1600,98 @@ export default class Weapon {
      * @param {THREE.Mesh} splatterMesh - The splatter mesh to orient
      * @param {THREE.Vector3} position - Impact position
      * @param {THREE.Vector3} normal - Surface normal
+     * @param {boolean} isFloor - Whether the surface is a floor
      * @private
      */
-    orientSplatterMesh(splatterMesh, position, normal) {
-        // Optimization: special case for flat horizontal surfaces (floor/ceiling)
-        if (Math.abs(normal.y) > 0.9) {
-            // For floor/ceiling, just rotate around Y axis
-            splatterMesh.rotation.x = normal.y > 0 ? -Math.PI / 2 : Math.PI / 2;
-            splatterMesh.rotation.z = Math.random() * Math.PI * 2;
-        } else {
-            // For walls and other surfaces, use lookAt
-            splatterMesh.lookAt(position.clone().add(normal));
+    orientSplatterMesh(splatterMesh, position, normal, isFloor = false) {
+        // Check if this is a floor/ceiling (horizontal surface)
+        // Either by the passed isFloor flag or by checking the normal direction
+        const isHorizontal = isFloor || Math.abs(normal.y) > 0.9;
+        
+        // Debug the normal for floor surfaces to help troubleshoot
+        if (isHorizontal) {
+            console.log('Horizontal surface hit detected. Normal:', normal, 'isFloor flag:', isFloor);
+        }
+        
+        // Create a separate mesh for debugging the normal direction 
+        // (this will help us visualize what's happening)
+        this.createNormalIndicator(position, normal);
+        
+        // Set mesh side to double to help with visibility
+        splatterMesh.material.side = THREE.DoubleSide;
+        
+        if (isHorizontal) {
+            // For horizontal surfaces (floor/ceiling):
             
-            // Random rotation around normal for variation
-            // Using a temporary quaternion for better performance
-            const tempQuaternion = new THREE.Quaternion();
-            tempQuaternion.setFromAxisAngle(normal, Math.random() * Math.PI * 2);
-            splatterMesh.quaternion.premultiply(tempQuaternion);
+            // Important: For a floor with Y-up, we need to create a flat horizontal decal
+            
+            // 1. Reset rotation
+            splatterMesh.rotation.set(0, 0, 0);
+            
+            // 2. Make the plane parallel to the floor
+            // For a standard plane geometry, we need to rotate around X to make it lie flat
+            splatterMesh.rotateX(-Math.PI/2);
+            
+            // 3. Add random rotation around normal (Y axis for floors)
+            splatterMesh.rotateY(Math.random() * Math.PI * 2);
+            
+            // 4. Position slightly above the surface to prevent z-fighting
+            splatterMesh.position.copy(position.clone().add(normal.clone().multiplyScalar(0.02)));
+            
+            // 5. Explicitly set renderOrder to ensure it draws correctly
+            splatterMesh.renderOrder = 1;
+            
+            console.log('Positioned horizontal splatter with rotation:', splatterMesh.rotation);
+        } else {
+            // For vertical surfaces (walls):
+            
+            // 1. Reset rotation
+            splatterMesh.rotation.set(0, 0, 0);
+            
+            // 2. Orient the mesh to face the normal using lookAt
+            const target = position.clone().add(normal.clone().multiplyScalar(1));
+            splatterMesh.lookAt(target);
+            
+            // 3. Add random rotation around the normal
+            const normalAxis = normal.clone().normalize();
+            splatterMesh.rotateOnAxis(normalAxis, Math.random() * Math.PI * 2);
+            
+            // 4. Position slightly in front of the surface to prevent z-fighting
+            splatterMesh.position.copy(position.clone().add(normal.clone().multiplyScalar(0.02)));
         }
     }
     
     /**
-     * Manages paint splatter objects to maintain performance
-     * Removes old splatters based on age and count
+     * Creates a small visual indicator of the normal direction for debugging
+     * This helps visualize why splatters might not be aligning correctly
+     * @param {THREE.Vector3} position - Origin position
+     * @param {THREE.Vector3} normal - Normal direction
      * @private
      */
-    managePaintSplatters() {
-        const MAX_SPLATTERS = 75;   // Maximum number of splatters to keep
-        const MAX_AGE_MS = 30000;  // Maximum age in milliseconds (30 seconds)
-        const now = Date.now();
+    createNormalIndicator(position, normal) {
+        // Create a small line showing the normal direction
+        const normalLength = 0.5;
+        const normalGeometry = new THREE.BufferGeometry().setFromPoints([
+            new THREE.Vector3(0, 0, 0),
+            normal.clone().multiplyScalar(normalLength)
+        ]);
         
-        // First remove any splatters that are too old
-        for (let i = this.paintSplatters.length - 1; i >= 0; i--) {
-            const splatter = this.paintSplatters[i];
-            if (now - splatter.createdAt > MAX_AGE_MS) {
-                this.scene.remove(splatter.mesh);
-                // Note: We don't dispose of material/geometry as they are shared
-                this.paintSplatters.splice(i, 1);
-            }
-        }
+        const normalMaterial = new THREE.LineBasicMaterial({ 
+            color: 0xff0000,  // Red for visibility
+            linewidth: 3
+        });
         
-        // If still too many, remove oldest ones
-        if (this.paintSplatters.length > MAX_SPLATTERS) {
-            // Sort by age (oldest first) for more efficient removal
-            this.paintSplatters.sort((a, b) => a.createdAt - b.createdAt);
-            
-            // Remove oldest splatters until we're under the limit
-            while (this.paintSplatters.length > MAX_SPLATTERS) {
-                const oldestSplatter = this.paintSplatters.shift();
-                this.scene.remove(oldestSplatter.mesh);
-            }
-        }
+        const normalLine = new THREE.Line(normalGeometry, normalMaterial);
+        normalLine.position.copy(position);
+        normalLine.name = 'normalIndicator';
+        this.scene.add(normalLine);
+        
+        // Remove after 3 seconds
+        setTimeout(() => {
+            this.scene.remove(normalLine);
+            normalLine.geometry.dispose();
+            normalMaterial.dispose();
+        }, 3000);
     }
     
     /**
@@ -1865,9 +1908,9 @@ export default class Weapon {
             const colorVariation = 0.15;
             const hsl = new THREE.Color(baseColor).getHSL({});
             const newColor = new THREE.Color().setHSL(
-                hsl.h + (Math.random() * 2 - 1) * 0.05,  // slight hue variation
-                Math.min(1, Math.max(0, hsl.s + (Math.random() * 2 - 1) * colorVariation)),
-                Math.min(1, Math.max(0, hsl.l + (Math.random() * 2 - 1) * colorVariation))
+                hsl.h + (Math.random() - 0.5) * 0.05,  // slight hue variation
+                Math.min(1, Math.max(0, hsl.s + (Math.random() - 0.5) * colorVariation)),
+                Math.min(1, Math.max(0, hsl.l + (Math.random() - 0.5) * colorVariation))
             );
             
             particleMaterial.color = newColor;
@@ -2207,26 +2250,21 @@ export default class Weapon {
             context.fillStyle = `rgba(${dropR}, ${dropG}, ${dropB}, ${0.4 + Math.random() * 0.5})`;
             
             context.beginPath();
+            
+            // Either teardrop or round droplet
             if (Math.random() > 0.3) {
-                // Circular droplet
                 context.arc(dropX, dropY, dropSize, 0, Math.PI * 2);
             } else {
-                // Irregular droplet
-                const irregularDropPoints = 4 + Math.floor(Math.random() * 3);
-                const dropAngleStep = (Math.PI * 2) / irregularDropPoints;
-                
-                for (let j = 0; j <= irregularDropPoints; j++) {
-                    const pointAngle = j * dropAngleStep;
-                    const pointRadius = dropSize * (0.7 + Math.random() * 0.6);
-                    const pointX = dropX + Math.cos(pointAngle) * pointRadius;
-                    const pointY = dropY + Math.sin(pointAngle) * pointRadius;
-                    
-                    if (j === 0) {
-                        context.moveTo(pointX, pointY);
-                    } else {
-                        context.lineTo(pointX, pointY);
-                    }
-                }
+                // Teardrop shape
+                context.ellipse(
+                    dropX, 
+                    dropY, 
+                    dropSize * 0.8, 
+                    dropSize * 1.5, 
+                    dropAngle, 
+                    0, 
+                    Math.PI * 2
+                );
             }
             context.fill();
         }
@@ -2596,12 +2634,20 @@ export default class Weapon {
                 // Get hit object and surface info
                 const hitObject = intersects[0].object;
                 const hitPoint = intersects[0].point;
-                const hitNormal = intersects[0].face.normal;
+                const hitNormal = intersects[0].face.normal.clone();
+                hitNormal.transformDirection(hitObject.matrixWorld);
+                
+                // Check for floors by userData property which is more reliable than just normal direction
+                let isFloor = false;
+                if (hitObject.userData && hitObject.userData.isFloor) {
+                    isFloor = true;
+                    console.log('Floor hit detected via userData.isFloor');
+                }
                 
                 // Create appropriate effect based on weapon type and surface
                 if (bullet.weaponType === 'paintball') {
                     // Paint splatter for paintball gun
-                    this.createPaintSplatter(hitPoint, hitNormal);
+                    this.createPaintSplatter(hitPoint, hitNormal, isFloor);
                 } else {
                     // Bullet impact effect for other weapons
                     this.createBulletImpact(hitPoint, hitNormal, bullet.weaponType);
@@ -2760,5 +2806,38 @@ export default class Weapon {
 
         // Update reload animation
         this.updateReload();
+    }
+    
+    /**
+     * Manages paint splatter objects to maintain performance
+     * Removes old splatters based on age and count
+     * @private
+     */
+    managePaintSplatters() {
+        const MAX_SPLATTERS = 75;   // Maximum number of splatters to keep
+        const MAX_AGE_MS = 30000;  // Maximum age in milliseconds (30 seconds)
+        const now = Date.now();
+        
+        // First remove any splatters that are too old
+        for (let i = this.paintSplatters.length - 1; i >= 0; i--) {
+            const splatter = this.paintSplatters[i];
+            if (now - splatter.createdAt > MAX_AGE_MS) {
+                this.scene.remove(splatter.mesh);
+                // Note: We don't dispose of material/geometry as they are shared
+                this.paintSplatters.splice(i, 1);
+            }
+        }
+        
+        // If still too many, remove oldest ones
+        if (this.paintSplatters.length > MAX_SPLATTERS) {
+            // Sort by age (oldest first) for more efficient removal
+            this.paintSplatters.sort((a, b) => a.createdAt - b.createdAt);
+            
+            // Remove oldest splatters until we're under the limit
+            while (this.paintSplatters.length > MAX_SPLATTERS) {
+                const oldestSplatter = this.paintSplatters.shift();
+                this.scene.remove(oldestSplatter.mesh);
+            }
+        }
     }
 }

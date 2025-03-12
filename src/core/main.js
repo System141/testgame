@@ -23,6 +23,8 @@ let enemies = [];
 let lastEnemySpawnTime = 0;
 let enemySpawnInterval = 10000; // 10 seconds between enemy spawns
 let isGameRunning = false;
+let clock; // THREE.js clock for timing
+let lastFrameTime = 0; // Track last frame time
 
 // Initialize and start game loop
 init();
@@ -71,12 +73,12 @@ function init() {
         // Initialize enhanced weapon UI
         initWeaponUI(gameState);
 
+        // Initialize clock for animation timing
+        clock = new THREE.Clock();
+        
         // Generate game environment
-        gameMap = new GameMap(scene, physicsWorld);
+        gameMap = new GameMap(scene, physicsWorld, renderer);
         skySphere = new SkySphere(scene);
-
-        // Create floor
-        createFloor();
 
         // Set up lighting
         setupLighting();
@@ -92,33 +94,6 @@ function init() {
     } catch (error) {
         console.error('Error initializing game:', error);
     }
-}
-
-/**
- * Create the game floor with texture
- */
-function createFloor() {
-    const textureGenerator = new TextureGenerator();
-    const floorTexture = textureGenerator.generateCanvasFloorTexture();
-    const floorGeometry = new THREE.BoxGeometry(100, 0.1, 100);
-    const floorMaterial = new THREE.MeshStandardMaterial({ 
-        map: floorTexture,
-        roughness: 0.8,
-        metalness: 0.2
-    });
-    const floor = new THREE.Mesh(floorGeometry, floorMaterial);
-    floor.position.y = -0.05;
-    floor.receiveShadow = true;
-    floor.name = 'floor';
-    scene.add(floor);
-    
-    // Add a physics body for the floor
-    const floorBody = new Body({
-        mass: 0, // Static body
-        position: new Vec3(0, -0.05, 0),
-        shape: new Box(new Vec3(50, 0.05, 50))
-    });
-    physicsWorld.addBody(floorBody);
 }
 
 /**
@@ -163,20 +138,24 @@ function animate() {
     requestAnimationFrame(animate);
     
     try {
-        const deltaTime = 1/60; // Fixed time step
+        // Calculate actual time delta between frames
+        const deltaTime = Math.min(clock.getDelta(), 0.1); // Cap at 0.1 to prevent large jumps
         
-        // Update physics world
-        physicsWorld.step(deltaTime);
+        // Update physics world with proper time step
+        // Using fixed timestep for physics but with substeps for smoother simulation
+        const physicsTimeStep = 1/60;
+        const maxSubSteps = 3;
+        physicsWorld.step(physicsTimeStep, deltaTime, maxSubSteps);
         
-        // Update game components
-        controls.update();
-        weapon.update();
+        // Update game components with actual delta time
+        controls.update(deltaTime);
+        weapon.update(deltaTime);
         
         // Spawn enemies periodically
         handleEnemySpawning();
         
         // Update all enemies
-        updateEnemies();
+        updateEnemies(deltaTime);
         
         // Detect collisions between bullets and enemies
         detectCollisions();
@@ -238,9 +217,9 @@ function spawnEnemy() {
 /**
  * Update all enemies and clean up dead ones
  */
-function updateEnemies() {
+function updateEnemies(deltaTime) {
     enemies = enemies.filter(enemy => enemy.isAlive);
-    enemies.forEach(enemy => enemy.update());
+    enemies.forEach(enemy => enemy.update(deltaTime));
 }
 
 /**

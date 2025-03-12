@@ -3,10 +3,16 @@ import * as THREE from '/node_modules/three/build/three.module.js';
 export default class TextureGenerator {
     // Methods for loading image-based textures
     generateFloorTexture() {
-        const texture = new THREE.TextureLoader().load('/src/assets/textures/realistic_arena_floor.jpg');
-        texture.wrapS = THREE.RepeatWrapping;
-        texture.wrapT = THREE.RepeatWrapping;
-        texture.repeat.set(10, 10);
+        const texture = new THREE.TextureLoader().load('/src/assets/textures/realistic_arena_floor.jpg', (texture) => {
+            // Configure texture settings once it's loaded to prevent FOUC (flash of untextured content)
+            texture.wrapS = THREE.RepeatWrapping;
+            texture.wrapT = THREE.RepeatWrapping;
+            texture.repeat.set(10, 10);
+            texture.generateMipmaps = true;
+            texture.minFilter = THREE.LinearMipMapLinearFilter;
+            texture.magFilter = THREE.LinearFilter;
+            texture.needsUpdate = true;
+        });
         return texture;
     }
 
@@ -80,8 +86,8 @@ export default class TextureGenerator {
     // Canvas-based texture generation methods
     generateCanvasFloorTexture() {
         const canvas = document.createElement('canvas');
-        canvas.width = 512;
-        canvas.height = 512;
+        canvas.width = 1024; // Increase to power of 2 for better mipmapping
+        canvas.height = 1024;
         const context = canvas.getContext('2d');
 
         // Draw a turf/grass pattern for paintball field
@@ -93,7 +99,7 @@ export default class TextureGenerator {
         context.lineWidth = 1;
         
         // Draw random grass-like lines
-        for (let i = 0; i < 5000; i++) {
+        for (let i = 0; i < 8000; i++) {
             const x = Math.random() * canvas.width;
             const y = Math.random() * canvas.height;
             const length = 3 + Math.random() * 5;
@@ -106,10 +112,10 @@ export default class TextureGenerator {
         }
         
         // Add some dirt patches
-        for (let i = 0; i < 20; i++) {
+        for (let i = 0; i < 30; i++) {
             const x = Math.random() * canvas.width;
             const y = Math.random() * canvas.height;
-            const radius = 5 + Math.random() * 20;
+            const radius = 10 + Math.random() * 30;
             
             context.fillStyle = `rgba(94, 66, 41, ${0.3 + Math.random() * 0.3})`;
             context.beginPath();
@@ -118,9 +124,15 @@ export default class TextureGenerator {
         }
 
         const texture = new THREE.CanvasTexture(canvas);
+        
+        // Configure for optimal performance
         texture.wrapS = THREE.RepeatWrapping;
         texture.wrapT = THREE.RepeatWrapping;
         texture.repeat.set(10, 10);
+        texture.generateMipmaps = true;
+        texture.minFilter = THREE.LinearMipMapLinearFilter; // Use trilinear filtering for better quality
+        texture.magFilter = THREE.LinearFilter;
+        
         return texture;
     }
 
@@ -474,8 +486,15 @@ export default class TextureGenerator {
     }
     
     addPaintSplattersToContext(context, width, height, count = 5, opacity = 0.2, subtle = false) {
-        const colors = ['#ff0000', '#0000ff', '#ffff00', '#00ff00', '#ff00ff', '#00ffff', '#ff8800'];
-        
+        const colors = [
+            '#ff0000', // Red
+            '#0000ff', // Blue
+            '#ffff00', // Yellow
+            '#66ff33', // Green
+            '#ff9900', // Orange
+            '#cc33ff', // Purple
+            '#ff66cc'  // Pink
+        ];
         for (let i = 0; i < count; i++) {
             const x = Math.random() * width;
             const y = Math.random() * height;
