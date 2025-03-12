@@ -15,6 +15,128 @@ export default class TextureGenerator {
             '#8800ff'  // Purple
         ];
     }
+    
+    /**
+     * Lightens a hex color by the specified amount
+     * @param {string} color - Hex color to lighten
+     * @param {number} amount - Amount to lighten (0-255)
+     * @returns {string} Lightened hex color
+     */
+    lightenColor(color, amount) {
+        // Handle non-string input or invalid color format
+        if (!color || typeof color !== 'string' || !color.startsWith('#')) {
+            // Return a default gray color if input is invalid
+            return '#808080';
+        }
+        
+        let hex = color.replace('#', '');
+        // Ensure we have a valid 6-character hex
+        if (hex.length === 3) {
+            hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+        }
+        
+        let r = parseInt(hex.substring(0, 2), 16);
+        let g = parseInt(hex.substring(2, 4), 16);
+        let b = parseInt(hex.substring(4, 6), 16);
+        
+        r = Math.min(255, r + amount);
+        g = Math.min(255, g + amount);
+        b = Math.min(255, b + amount);
+        
+        return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+    }
+    
+    /**
+     * Darkens a hex color by the specified amount
+     * @param {string} color - Hex color to darken
+     * @param {number} amount - Amount to darken (0-255)
+     * @returns {string} Darkened hex color
+     */
+    darkenColor(color, amount) {
+        if (typeof color !== 'string' || !color.startsWith('#')) {
+            // Return a default gray color if input is invalid
+            return '#808080';
+        }
+        
+        let hex = color.replace('#', '');
+        // Ensure we have a valid 6-character hex
+        if (hex.length === 3) {
+            hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+        }
+        
+        let r = parseInt(hex.substring(0, 2), 16);
+        let g = parseInt(hex.substring(2, 4), 16);
+        let b = parseInt(hex.substring(4, 6), 16);
+        
+        r = Math.max(0, r - amount);
+        g = Math.max(0, g - amount);
+        b = Math.max(0, b - amount);
+        
+        return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+    }
+    
+    /**
+     * Adjusts brightness of a hex color by the specified amount
+     * @param {string} color - Hex color to adjust
+     * @param {number} amount - Amount to adjust (positive = lighter, negative = darker)
+     * @returns {string} Adjusted hex color
+     */
+    adjustBrightness(color, amount) {
+        // Handle non-string input or invalid color format
+        if (!color || typeof color !== 'string' || !color.startsWith('#')) {
+            // Return a default gray color if input is invalid
+            return '#808080';
+        }
+        
+        let hex = color.replace('#', '');
+        // Ensure we have a valid 6-character hex
+        if (hex.length === 3) {
+            hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+        }
+        
+        let r = parseInt(hex.substring(0, 2), 16);
+        let g = parseInt(hex.substring(2, 4), 16);
+        let b = parseInt(hex.substring(4, 6), 16);
+        
+        r = Math.max(0, Math.min(255, r + amount));
+        g = Math.max(0, Math.min(255, g + amount));
+        b = Math.max(0, Math.min(255, b + amount));
+        
+        return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+    }
+    
+    /**
+     * Converts hex color to RGB format
+     * @param {string} hex - Hex color to convert
+     * @returns {string} RGB color string (r,g,b)
+     */
+    hexToRgb(hex) {
+        if (!hex || typeof hex !== 'string') {
+            return "128,128,128"; // Default gray if input is invalid
+        }
+        
+        // Remove # if present
+        hex = hex.replace('#', '');
+        
+        // Handle 3-digit hex
+        if (hex.length === 3) {
+            hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+        }
+        
+        const r = parseInt(hex.substring(0, 2), 16);
+        const g = parseInt(hex.substring(2, 4), 16);
+        const b = parseInt(hex.substring(4, 6), 16);
+        
+        return isNaN(r) || isNaN(g) || isNaN(b) ? "128,128,128" : `${r},${g},${b}`;
+    }
+    
+    /**
+     * Gets a random color from the paintball color palette
+     * @returns {string} Random paintball color in hex format
+     */
+    getRandomPaintballColor() {
+        return this.paintballColors[Math.floor(Math.random() * this.paintballColors.length)];
+    }
 
     // Methods for loading image-based textures
     generateFloorTexture() {
@@ -385,17 +507,17 @@ export default class TextureGenerator {
             context.arc(x, y, radius, 0, Math.PI * 2);
             context.fill();
             
-            // Add random drips/splashes from the main splatter
-            const splashes = 2 + Math.floor(Math.random() * 5);
-            for (let j = 0; j < splashes; j++) {
+            // Add drips
+            const drips = 2 + Math.floor(Math.random() * 5);
+            for (let j = 0; j < drips; j++) {
                 const angle = Math.random() * Math.PI * 2;
                 const distance = radius * 0.5 + Math.random() * radius * 0.7;
-                const splashX = x + Math.cos(angle) * distance;
-                const splashY = y + Math.sin(angle) * distance;
-                const splashRadius = radius * 0.1 + Math.random() * radius * 0.4;
+                const dripX = x + Math.cos(angle) * distance;
+                const dripY = y + Math.sin(angle) * distance;
+                const dripRadius = radius * 0.1 + Math.random() * radius * 0.4;
                 
                 context.beginPath();
-                context.arc(splashX, splashY, splashRadius, 0, Math.PI * 2);
+                context.arc(dripX, dripY, dripRadius, 0, Math.PI * 2);
                 context.fill();
             }
         }
@@ -914,10 +1036,10 @@ export default class TextureGenerator {
                 const dropletCount = Math.floor(Math.random() * 8) + 3;
                 for (let j = 0; j < dropletCount; j++) {
                     const angle = Math.random() * Math.PI * 2;
-                    const distance = Math.random() * size * 1.5 + size;
+                    const distance = size * 0.5 + Math.random() * size * 0.7;
                     const dropletX = x + Math.cos(angle) * distance;
                     const dropletY = y + Math.sin(angle) * distance;
-                    const dropletSize = Math.random() * 3 + 1;
+                    const dropletSize = size * 0.1 + Math.random() * size * 0.4;
                     
                     context.beginPath();
                     context.arc(dropletX, dropletY, dropletSize, 0, Math.PI * 2);
@@ -1528,15 +1650,23 @@ export default class TextureGenerator {
      * @returns {string} RGB values as comma-separated string
      */
     hexToRgb(hex) {
+        if (!hex || typeof hex !== 'string') {
+            return "128,128,128"; // Default gray if input is invalid
+        }
+        
         // Remove # if present
         hex = hex.replace('#', '');
         
-        // Parse hex values to RGB
+        // Handle 3-digit hex
+        if (hex.length === 3) {
+            hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+        }
+        
         const r = parseInt(hex.substring(0, 2), 16);
         const g = parseInt(hex.substring(2, 4), 16);
         const b = parseInt(hex.substring(4, 6), 16);
         
-        return `${r}, ${g}, ${b}`;
+        return isNaN(r) || isNaN(g) || isNaN(b) ? "128,128,128" : `${r},${g},${b}`;
     }
     
     drawBoltDetail(context, x, y) {
